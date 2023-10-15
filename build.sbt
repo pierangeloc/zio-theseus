@@ -17,7 +17,7 @@ lazy val doobie =
     .in(file("modules/doobie"))
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= allDoobie ++ Seq(zio, zioInteropCats)
+      libraryDependencies ++= allDoobie ++ Seq(zio, zioInteropCats) ++ Seq(zioTelemetry, otelJdbc)
     )
 
 lazy val commonSettings = {

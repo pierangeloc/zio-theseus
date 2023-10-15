@@ -31,4 +31,6 @@ object Dependencies {
 
   val zioTest = "dev.zio" %% "zio-test" % "2.0.18" % Test
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % "2.0.18" % Test
+
+  val otelJdbc = "io.opentelemetry.instrumentation" % "opentelemetry-jdbc" % "1.31.0-alpha"
 }
