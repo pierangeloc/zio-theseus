@@ -66,10 +66,7 @@ object QueryRunner {
                 .put(SemanticAttributes.DB_USER, dbInfo.getUser)
                 .put(SemanticAttributes.DB_STATEMENT, sql)
                 .putAll(extraAttributes(dbInfo, sql))
-                //            .put(DatadogTags.DB_OPERATION, sql.trim.split(" ").headOption.getOrElse("---"))
-                //            .put(DatadogTags.COMPONENT, DatadogTags.Jdbc.JDBC_PREPARED_STATEMENT)
-                //            .put(DatadogTags.DB_INSTANCE, dbInfo.instance)
-                //            .put(DatadogTags.PEER_HOSTNAME, dbInfo.host)
+
                 .build()
             )
           } yield res
@@ -78,11 +75,15 @@ object QueryRunner {
         /**
          * Run the query, wrapping it in a span with the given name and sql attribute.
          * Basic DBInfo are derived from the connection and added to the span attributes.
-         * Extra attributes can be derived and added
-         * @param tracing
-         * @param transactor
-         * @param extraAttributes
-         * @return
+         * Extra attributes can be derived and added through the `extraAttributes` function parameter
+         * For Datadog:
+         * {{{
+         * //            .put(DatadogTags.DB_OPERATION, sql.trim.split(" ").headOption.getOrElse("---"))
+         * //            .put(DatadogTags.COMPONENT, DatadogTags.Jdbc.JDBC_PREPARED_STATEMENT)
+         * //            .put(DatadogTags.DB_INSTANCE, dbInfo.instance)
+         * //            .put(DatadogTags.PEER_HOSTNAME, dbInfo.host)
+         * }}}
+         *
          */
         def runTracedQuery(tracing: Tracing, transactor: HikariTransactor[Task], extraAttributes: (DbInfo, String) => Attributes = (_, _) => Attributes.empty): IO[DBError, O] =
           runWithSqlAttributes(tracing, transactor.kernel, span, sql, extraAttributes)(
