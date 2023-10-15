@@ -45,15 +45,15 @@ object QueryRunner {
      * }}}
      */
     object syntax {
-      private case class TracedConnectionIO[A](sql: String, span: String, cx: ConnectionIO[A]) {
+      private case class TracedConnectionIO[O](sql: String, span: String, cx: ConnectionIO[O]) {
 
-        private def runWithSqlAttributes[A](
+        private def runWithSqlAttributes(
                                              tracing: Tracing,
                                              dataSource: HikariTransactor[Task]#A,
                                              spanName: String,
                                              sql: String,
-                                             extraAttributes: (DbInfo, String) => Attributes = (_, _) => Attributes.empty
-                                           )(zio: IO[DBError, A]): IO[DBError, A] = {
+                                             extraAttributes: (DbInfo, String) => Attributes
+                                           )(zio: IO[DBError, O]): IO[DBError, O] = {
 
           for {
             dbInfo <- ZIO.succeed(JdbcUtils.computeDbInfo(dataSource.getConnection))
@@ -75,8 +75,17 @@ object QueryRunner {
           } yield res
         }
 
-        def runTracedQuery(tracing: Tracing, transactor: HikariTransactor[Task]): IO[DBError, A] =
-          runWithSqlAttributes(tracing, transactor.kernel, span, sql)(
+        /**
+         * Run the query, wrapping it in a span with the given name and sql attribute.
+         * Basic DBInfo are derived from the connection and added to the span attributes.
+         * Extra attributes can be derived and added
+         * @param tracing
+         * @param transactor
+         * @param extraAttributes
+         * @return
+         */
+        def runTracedQuery(tracing: Tracing, transactor: HikariTransactor[Task], extraAttributes: (DbInfo, String) => Attributes = (_, _) => Attributes.empty): IO[DBError, O] =
+          runWithSqlAttributes(tracing, transactor.kernel, span, sql, extraAttributes)(
             cx.transact(transactor)
               .tapErrorCause(cause => ZIO.logErrorCause("Error calling database", cause))
               .mapError(e => DBError(s"Error calling database", Some(e)))
