@@ -11,6 +11,7 @@ lazy val `zio-toolbox` =
     .settings(autoImportSettings)
     .settings(dependencies)
     .aggregate(doobie)
+    .aggregate(sttp)
 
 lazy val doobie =
   project
@@ -18,6 +19,14 @@ lazy val doobie =
     .settings(commonSettings)
     .settings(
       libraryDependencies ++= allDoobie ++ Seq(zio, zioInteropCats) ++ Seq(zioTelemetry, otelJdbc)
+    )
+
+lazy val sttp =
+  project
+    .in(file("modules/sttp"))
+    .settings(commonSettings)
+    .settings(
+      libraryDependencies ++= allSttp ++ Seq(zio, zioInteropCats) ++ Seq(zioTelemetry)
     )
 
 lazy val commonSettings = {
