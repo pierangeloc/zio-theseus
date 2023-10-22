@@ -37,6 +37,10 @@ object Dependencies {
 
   val allSttp = sttp ++ tapir
 
+  val allGrpc = Seq(
+    "com.thesamet.scalapb.zio-grpc" %% "zio-grpc-core" % "0.6.0"
+  )
+
   val zio = "dev.zio" %% "zio" % "2.0.18"
   val zioTelemetry = "dev.zio" %% "zio-opentelemetry" % "3.0.0-RC17"
   val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "23.1.0.0"
@@ -46,5 +50,8 @@ object Dependencies {
   val zioTest = "dev.zio" %% "zio-test" % "2.0.18" % Test
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % "2.0.18" % Test
 
+  val otelSdk = "io.opentelemetry" % "opentelemetry-sdk" % "1.29.0"
+
   val otelJdbc = "io.opentelemetry.instrumentation" % "opentelemetry-jdbc" % "1.31.0-alpha"
+  val otelGrpc = "io.opentelemetry.instrumentation" % "opentelemetry-grpc-1.6" % "1.31.0-alpha"
 }

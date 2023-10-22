@@ -12,13 +12,22 @@ lazy val `zio-toolbox` =
     .settings(dependencies)
     .aggregate(doobie)
     .aggregate(sttp)
+    .aggregate(grpc)
 
 lazy val doobie =
   project
     .in(file("modules/doobie"))
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= allDoobie ++ Seq(zio, zioInteropCats) ++ Seq(zioTelemetry, otelJdbc)
+      libraryDependencies ++= allDoobie ++ Seq(zio, zioInteropCats, zioTelemetry, otelJdbc)
+    )
+
+lazy val grpc =
+  project
+    .in(file("modules/grpc"))
+    .settings(commonSettings)
+    .settings(
+      libraryDependencies ++= allGrpc ++ Seq(zio, zioTelemetry, otelGrpc, otelSdk)
     )
 
 lazy val sttp =

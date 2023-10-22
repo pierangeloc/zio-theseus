@@ -13,7 +13,7 @@ ThisBuild / warnings := {
       "-Xfatal-warnings", // for wartremover warts
     )
   else if (lintOn.value)
-    Seq("-Wconf:any:warning")
+    Seq("-Wconf:any:silent")
   else
     Seq("-Wconf:any:silent")
 }
