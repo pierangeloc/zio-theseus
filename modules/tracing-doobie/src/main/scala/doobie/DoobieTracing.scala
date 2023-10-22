@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.doobie
+package doobie
 
 import doobie.hikari.HikariTransactor
 import doobie.{ConnectionIO, Fragment}
@@ -8,14 +8,14 @@ import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.instrumentation.jdbc.internal.JdbcUtils
 import io.opentelemetry.instrumentation.jdbc.internal.dbinfo.DbInfo
 import io.opentelemetry.semconv.SemanticAttributes
+import io.tuliplogic.ziotoolbox.doobie.DBError
 import zio.{IO, Task, ZIO}
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.interop.catz._
 
 
-object QueryRunner {
 
-  object Tracing {
+object DoobieTracing {
 
     private def cleanFragmentSql(f: Fragment) = f.toString().drop("Fragment(\" ".length).dropRight("\")".length)
 
@@ -125,4 +125,3 @@ object QueryRunner {
 
 
   }
-}
