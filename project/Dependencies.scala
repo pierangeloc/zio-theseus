@@ -41,6 +41,10 @@ object Dependencies {
     "com.thesamet.scalapb.zio-grpc" %% "zio-grpc-core" % "0.6.0"
   )
 
+  val allKafka = Seq(
+    "dev.zio" %% "zio-kafka" % "2.4.2"
+  )
+
   val zio = "dev.zio" %% "zio" % "2.0.18"
   val zioTelemetry = "dev.zio" %% "zio-opentelemetry" % "3.0.0-RC17"
   val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "23.1.0.0"

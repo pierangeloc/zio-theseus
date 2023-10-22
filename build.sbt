@@ -10,9 +10,19 @@ lazy val `zio-toolbox` =
     .settings(commonSettings)
     .settings(autoImportSettings)
     .settings(dependencies)
+    .aggregate(`tracing-commons`)
     .aggregate(doobie)
     .aggregate(sttp)
     .aggregate(grpc)
+    .aggregate(kafka)
+
+lazy val `tracing-commons` =
+  project
+    .in(file("modules/tracing-commons"))
+    .settings(commonSettings)
+    .settings(
+      libraryDependencies ++= Seq(zio, zioTelemetry)
+    )
 
 lazy val doobie =
   project
@@ -29,6 +39,15 @@ lazy val grpc =
     .settings(
       libraryDependencies ++= allGrpc ++ Seq(zio, zioTelemetry, otelGrpc, otelSdk)
     )
+
+lazy val kafka =
+  project
+    .in(file("modules/kafka"))
+    .settings(commonSettings)
+    .settings(
+      libraryDependencies ++= allKafka ++ Seq(zio, zioTelemetry, otelGrpc, otelSdk)
+    )
+    .dependsOn(`tracing-commons`)
 
 lazy val sttp =
   project
