@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package io.tuliplogic.ziotoolbox.tracing.example.proto;
+
+message GetStatusRequest {}
+message StatusResponse {
+  string value = 1;
+}
+
+service GetStatusApi {
+  rpc GetStatus (GetStatusRequest) returns (StatusResponse);
+}

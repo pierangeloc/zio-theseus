@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.sttp.client
+package io.tuliplogic.ziotoolbox.tracing.sttp.client
 
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.{SpanKind, StatusCode}

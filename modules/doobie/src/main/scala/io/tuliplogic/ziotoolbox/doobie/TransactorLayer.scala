@@ -3,6 +3,7 @@ package io.tuliplogic.ziotoolbox.doobie
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import doobie.hikari.HikariTransactor
 import doobie.util.log
+import doobie.util.log.LogEvent
 import doobie.util.transactor.Transactor
 import doobie.{ExecutionContexts, LogHandler}
 import io.opentelemetry.api.OpenTelemetry
@@ -67,4 +68,30 @@ object TransactorLayer {
       } yield Transactor.fromDataSource[Task](ds, connectEC, Some(logHandler))
     }
 
+
+  /** Use this only in test code, as it will log all queries and their arguments, unencrypted
+   */
+  object Debug {
+    val withLogging: ZLayer[DbConnectionParams, Throwable, HikariTransactor[Task]] = ZLayer.scoped {
+      for {
+        dbParams <- ZIO.service[DbConnectionParams]
+        hikariConfig <- ZIO.succeed {
+          val hikariConfig = new HikariConfig()
+          hikariConfig.setDriverClassName("org.postgresql.Driver")
+          hikariConfig.setJdbcUrl(dbParams.url)
+          hikariConfig.setUsername(dbParams.user)
+          hikariConfig.setPassword(dbParams.password)
+          hikariConfig
+        }
+        xa <- HikariTransactor
+          .fromHikariConfig[Task](
+            hikariConfig,
+            Some((logEvent: LogEvent) =>
+              ZIO.logInfo("Run SQL:\"" + logEvent.sql + "\"\nwith ARGS: [" + logEvent.args.mkString(", ") + "]")
+            )
+          )
+          .toScopedZIO
+      } yield xa
+    }
+  }
 }

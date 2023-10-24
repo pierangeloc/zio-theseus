@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.sttp.server
+package io.tuliplogic.ziotoolbox.tracing.sttp.server
 
 import cats.implicits.catsSyntaxEq
 import io.opentelemetry.api.trace.SpanKind

@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.grpc.server
+package io.tuliplogic.ziotoolbox.tracing.grpc.server
 
 import io.grpc.{Metadata, Status, StatusException}
 import io.opentelemetry.api.trace.SpanKind

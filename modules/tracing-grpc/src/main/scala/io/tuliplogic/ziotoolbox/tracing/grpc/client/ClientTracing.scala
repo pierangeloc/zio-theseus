@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.grpc.client
+package io.tuliplogic.ziotoolbox.tracing.grpc.client
 
 import io.grpc.{ManagedChannelBuilder, Metadata}
 import scalapb.zio_grpc.{ZClientInterceptor, ZManagedChannel}

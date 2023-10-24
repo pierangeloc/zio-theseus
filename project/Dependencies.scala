@@ -17,8 +17,9 @@ object Dependencies {
   }
 
 
-  val doobie = "org.tpolecat" %% "doobie-core" % "1.0.0-RC4"
-  val doobieHikari = "org.tpolecat" %% "doobie-hikari" % "1.0.0-RC4"
+  val doobieVersion = "1.0.0-RC4"
+  val doobie = "org.tpolecat" %% "doobie-core" % doobieVersion
+  val doobieHikari = "org.tpolecat" %% "doobie-hikari" % doobieVersion
   val postgres = "org.postgresql" % "postgresql" % "42.6.0"
   val flyway   = "org.flywaydb"        % "flyway-core" % "9.22.3"
   val allDoobie = Seq(doobie, doobieHikari, postgres, flyway)
@@ -29,10 +30,11 @@ object Dependencies {
     "com.softwaremill.sttp.client3" %% "zio" % "3.8.15"
   )
 
+  val tapirVersion = "1.6.0"
   val tapir =  Seq(
-    "com.softwaremill.sttp.tapir" %% "tapir-zio" % "1.6.0",
-    "com.softwaremill.sttp.tapir" %% "tapir-core" % "1.6.0",
-    "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % "1.6.0",
+    "com.softwaremill.sttp.tapir" %% "tapir-zio" % tapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
   )
 
   val allSttp = sttp ++ tapir

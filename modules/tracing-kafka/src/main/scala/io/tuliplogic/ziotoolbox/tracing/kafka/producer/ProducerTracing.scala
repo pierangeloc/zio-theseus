@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.kafka.producer
+package io.tuliplogic.ziotoolbox.tracing.kafka.producer
 
 import io.opentelemetry.api.trace.SpanKind
 import io.tuliplogic.ziotoolbox.tracing.commons.OpenTelemetryTracer

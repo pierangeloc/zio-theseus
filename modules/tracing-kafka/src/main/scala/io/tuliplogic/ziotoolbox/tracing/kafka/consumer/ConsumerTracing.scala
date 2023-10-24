@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.kafka.consumer
+package io.tuliplogic.ziotoolbox.tracing.kafka.consumer
 
 import io.opentelemetry.api.trace.SpanKind
 import io.tuliplogic.ziotoolbox.tracing.commons.OpenTelemetryTracer
