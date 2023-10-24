@@ -52,7 +52,7 @@ lazy val `tracing-grpc` =
 
 lazy val `tracing-kafka` =
   project
-    .in(file("modules/`tracing-kafka`"))
+    .in(file("modules/tracing-kafka"))
     .settings(commonSettings)
     .settings(
       libraryDependencies ++= allKafka ++ Seq(zio, zioTelemetry, otelGrpc, otelSdk)
