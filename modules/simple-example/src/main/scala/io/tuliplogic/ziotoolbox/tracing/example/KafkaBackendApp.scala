@@ -1,5 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
+import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.ConsumerTracing
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
 import zio.kafka.consumer.{Consumer, ConsumerSettings, Subscription}
@@ -13,8 +15,8 @@ import zio.{ZIOAppDefault, _}
 
 object KafkaBackendApp extends ZIOAppDefault {
 
-  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
-    TracingInstruments.defaultBootstrap
+//  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
+//    TracingInstruments.defaultBootstrap
   def process(record: ConsumerRecord[Long, String]) =
     for {
       repo <- ZIO.service[CallRecordRepository]
@@ -53,7 +55,7 @@ object KafkaBackendApp extends ZIOAppDefault {
         consumerLayer,
         CallRecordRepository.workingRepoLayer,
         Baggage.logAnnotated,
-        TracingInstruments.fiberRefContextStorage,
+        ContextStorage.fiberRef,
         Tracing.live,
         JaegerTracer.default,
       )

@@ -8,13 +8,14 @@ import sttp.tapir.ztapir._
 import zio.http.{HttpApp, Server}
 import zio.kafka.producer.Producer
 import zio.telemetry.opentelemetry.baggage.Baggage
+import zio.telemetry.opentelemetry.context.ContextStorage
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.{Scope, ULayer, URLayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
 object ProxyApp extends ZIOAppDefault {
 
-  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
-    TracingInstruments.defaultBootstrap
+//  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
+//    TracingInstruments.defaultBootstrap
   val port = 9003
 
   def performProxyCalls(parallel: Boolean) = if (parallel) {
@@ -61,7 +62,7 @@ object ProxyApp extends ZIOAppDefault {
       be <- HttpClientZioBackend().orDie
       tracing <- ZIO.service[Tracing]
       baggage <- ZIO.service[Baggage]
-    } yield TracingSttpBackend.defaultTracingBackend(be, tracing, baggage)
+    } yield OpenTelemetryTracingZioBackend(be, tracing, baggage)
   }
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
@@ -73,7 +74,7 @@ object ProxyApp extends ZIOAppDefault {
         httpTracingLayer,
         Tracing.live,
         Baggage.logAnnotated,
-        TracingInstruments.fiberRefContextStorage,
+        ContextStorage.fiberRef,
         JaegerTracer.default,
         KafkaClient.producerLayer
       )

@@ -4,6 +4,7 @@ import doobie.DoobieTracing.syntax.TracedFragment
 import doobie.Fragment
 import doobie.hikari.HikariTransactor
 import doobie.implicits._
+import doobie.postgres.implicits._
 import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, TransactorLayer}
 import io.tuliplogic.ziotoolbox.tracing.example.CallRecordRepository.CallRecord
 import zio.telemetry.opentelemetry.context.ContextStorage

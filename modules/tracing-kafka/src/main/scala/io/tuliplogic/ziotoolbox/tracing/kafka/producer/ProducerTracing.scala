@@ -1,71 +1,59 @@
 package io.tuliplogic.ziotoolbox.tracing.kafka.producer
 
-import io.opentelemetry.api.trace.SpanKind
-import io.tuliplogic.ziotoolbox.tracing.commons.OpenTelemetryTracer
-import org.apache.kafka.clients.consumer.ConsumerRecord
+
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.{Header => KafkaHeader}
-import zio._
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.baggage.propagation.BaggagePropagator
-import zio.telemetry.opentelemetry.context.IncomingContextCarrier
+import zio.telemetry.opentelemetry.context.OutgoingContextCarrier
+import zio.{Trace, URIO, ZIO, ZIOAspect}
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
-import java.nio.charset.StandardCharsets
-class ProducerTracing {
-  private def headersCarrier(headers: List[KafkaHeader]): IncomingContextCarrier[List[KafkaHeader]] =
-    new IncomingContextCarrier[List[KafkaHeader]] {
-      override def getAllKeys(carrier: List[KafkaHeader]): Iterable[String] = carrier.map(_.key)
+import scala.jdk.CollectionConverters._
 
-      override def getByKey(carrier: List[KafkaHeader], key: String): Option[String] = {
-        val res =
-          carrier.map(h => (h.key, h.value)).find(_._1 == key).map(kv => new String(kv._2, StandardCharsets.UTF_8))
-        res
+object ProducerTracing {
+
+  /**
+   * When producing a kafka producer record, enrich it with the headers coming fro this method
+   * to carry along the tracing information.
+   * NOTE: If you open a span around the production of the record into kafka, the span kind should be `SpanKind.PRODUCER`,
+   */
+  private def withTracingInfo: URIO[Baggage with Tracing , List[KafkaHeader]] = {
+    val carrier = OutgoingContextCarrier.default()
+    val tracingPropagator: TraceContextPropagator = TraceContextPropagator.default
+    val baggagePropagator: BaggagePropagator = BaggagePropagator.default
+
+    for {
+      tracing <- ZIO.service[Tracing]
+      baggage <- ZIO.service[Baggage]
+      _ <- tracing.inject(tracingPropagator, carrier)
+      _ <- baggage.inject(baggagePropagator, carrier)
+      res = carrier.kernel.toList.map {
+        case (k, v) => new RecordHeader(k, v.getBytes("UTF-8"))
       }
-
-      override val kernel: List[KafkaHeader] = headers
-    }
-
-  type KafkaTracer = OpenTelemetryTracer[ConsumerRecord[_, _], Any]
-
-  def defaultKafkaTracer(span: String): KafkaTracer = new KafkaTracer {
-    override def spanName(request: ConsumerRecord[_, _]): String = span
-
-    override def before(record: ConsumerRecord[_, _]): URIO[Tracing, Unit] =
-      ZIO.serviceWithZIO[Tracing](_.setAttribute("kafka.topic", record.topic())) *>
-        ZIO.serviceWithZIO[Tracing](_.setAttribute("kafka.partition", record.partition().toString))
-
-    override def after(response: Any): URIO[Tracing, Unit] = ZIO.unit
+    } yield res
   }
 
-  /** Annotate the effect that processes the consumer record to have the processing wrapped in a span carrying along the
-   * tracing information
-   */
-  def kafkaTraced[K, V](
-                         kafkaTracer: KafkaTracer
-                       )(record: ConsumerRecord[K, V]): ZIOAspect[Nothing, Baggage with Tracing, Nothing, Any, Nothing, Any] =
-    new ZIOAspect[Nothing, Baggage with Tracing, Nothing, Any, Nothing, Any] {
-      override def apply[R >: Nothing <: Baggage with Tracing, E >: Nothing <: Any, A >: Nothing <: Any](
-                                                                                                          zio: ZIO[R, E, A]
-                                                                                                        )(implicit trace: Trace): ZIO[R, E, A] = {
-        val carrier = headersCarrier(record.headers.toArray.toList)
-        for {
-          baggage <- ZIO.service[Baggage]
-          tracing <- ZIO.service[Tracing]
-          _ <- baggage.extract(BaggagePropagator.default, carrier)
-          res <- (kafkaTracer.before(record) *>
-            zio.tap(_ => kafkaTracer.after(()))) @@ tracing.aspects.extractSpan(
-            TraceContextPropagator.default,
-            carrier,
-            kafkaTracer.spanName(record),
-            spanKind = SpanKind.CONSUMER
-          )
-        } yield res
-      }
-    }
+  def tracedRecord[K, V](producerRecord: ProducerRecord[K, V]): URIO[Tracing with Baggage, ProducerRecord[K, V]] = for {
+    headers <- withTracingInfo
+    existingHeders = producerRecord.headers()
+    allHeaders = headers ++ existingHeders.toArray.toList
+    _ <- ZIO.logInfo(s"Producing to kafka with headers: $allHeaders")
+  } yield new ProducerRecord[K, V](
+    producerRecord.topic(),
+    producerRecord.partition(),
+    producerRecord.timestamp(),
+    producerRecord.key(),
+    producerRecord.value(),
+    allHeaders.asJava
+  )
 
-  def kafkaTracedSpan[K, V](spanName: String)(
-    record: ConsumerRecord[K, V]
-  ): ZIOAspect[Nothing, Baggage with Tracing, Nothing, Any, Nothing, Any] =
-    kafkaTraced(defaultKafkaTracer(spanName))(record)
+  def traced[K, V]: ZIOAspect[Nothing, Baggage with Tracing, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] =
+    new ZIOAspect[Nothing, Baggage with Tracing, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] {
+      override def apply[R >: Nothing <: Baggage with Tracing, E >: Nothing <: Any, A >: ProducerRecord[K, V] <: ProducerRecord[K, V]](zio: ZIO[R, E, A])(implicit trace: Trace): ZIO[R, E, A] =
+        zio.flatMap(tracedRecord)
+    }
 }
+
