@@ -5,7 +5,7 @@ import doobie.Fragment
 import doobie.hikari.HikariTransactor
 import doobie.implicits._
 import doobie.postgres.implicits._
-import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, TransactorLayer}
+import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, FlywayMigration, TransactorLayer}
 import io.tuliplogic.ziotoolbox.tracing.example.CallRecordRepository.CallRecord
 import zio.telemetry.opentelemetry.context.ContextStorage
 import zio.telemetry.opentelemetry.tracing.Tracing
@@ -49,13 +49,14 @@ object CallRecordRepository {
   val workingRepoLayer = ZLayer.make[CallRecordRepository](
     CallRecordRepository.live,
     //      TransactorLayer.afterMigration(List("db/migration")).orDie,
-    TransactorLayer.Debug.withLogging.tapErrorCause(cause => ZIO.logErrorCause(cause)),
+    FlywayMigration.layer,
+    TransactorLayer.Debug.withLogging,
     ZLayer.succeed(
       DbConnectionParams(
         url = "jdbc:postgresql://localhost:5411/opentelemetry",
         user = "opentelemetry",
         password = "opentelemetry",
-        maxConnections = 3000
+        maxConnections = 5
       )
     ),
     //these should come from main, but we do this this way so we don't have to change too much stuff

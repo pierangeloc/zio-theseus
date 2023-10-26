@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.doobie
 
 import com.zaxxer.hikari.HikariDataSource
-import zio.Task
+import zio.{Task, ZIO, ZLayer}
 
 object FlywayMigration {
 
@@ -26,6 +26,13 @@ object FlywayMigration {
     for {
       flyway <- flyway
       _ <- ZIO.attempt(flyway.migrate())
+    } yield ()
+  }
+
+  val layer: ZLayer[DbConnectionParams, Throwable, Unit] = ZLayer.fromZIO {
+    for {
+      dbConnectionParams <- ZIO.service[DbConnectionParams]
+      _ <- migrate(dbConnectionParams)
     } yield ()
   }
 }
