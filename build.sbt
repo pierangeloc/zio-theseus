@@ -67,6 +67,7 @@ lazy val `tracing-sttp` =
     .settings(
       libraryDependencies ++= allSttp ++ Seq(zio, zioInteropCats) ++ Seq(zioTelemetry)
     )
+    .dependsOn(`tracing-commons`)
 
 lazy val `simple-example` = project
   .in(file("modules/simple-example"))

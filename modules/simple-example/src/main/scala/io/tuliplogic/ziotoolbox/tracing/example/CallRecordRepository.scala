@@ -48,7 +48,6 @@ object CallRecordRepository {
 
   val workingRepoLayer = ZLayer.make[CallRecordRepository](
     CallRecordRepository.live,
-    //      TransactorLayer.afterMigration(List("db/migration")).orDie,
     FlywayMigration.layer,
     TransactorLayer.Debug.withLogging,
     ZLayer.succeed(

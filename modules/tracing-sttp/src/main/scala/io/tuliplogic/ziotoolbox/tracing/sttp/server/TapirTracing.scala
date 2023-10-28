@@ -33,7 +33,7 @@ object TapirTracing {
   implicit class TracingZEndpoint[SECURITY_INPUT, INPUT, ERROR_OUTPUT, OUTPUT, C](
                                                                                    e: Endpoint[SECURITY_INPUT, INPUT, ERROR_OUTPUT, OUTPUT, C]
                                                                                  ) {
-    private val endpointWithRequestHeaders = e.in(sttp.tapir.headers)
+    private val endpointWithRequestHeaders = e.in(sttp.tapir.headers) // TODO: enrioch with path information
 
     /**
      * Use this method where you would  use `zServerLogic`, you must provide the spanName
