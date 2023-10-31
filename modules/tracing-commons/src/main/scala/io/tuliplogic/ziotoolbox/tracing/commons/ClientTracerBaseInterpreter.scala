@@ -7,6 +7,8 @@ import zio.telemetry.opentelemetry.context.OutgoingContextCarrier
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
+import scala.collection.mutable
+
 trait ClientTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   def tracing: Tracing
   def baggage: Baggage
@@ -23,13 +25,15 @@ trait ClientTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
       case (k, v) => tracing.setAttribute(k, v)
     } *>
       tracing.inject(tracingPropagator, outgoingCarrier) *>
-      baggage.inject(baggagePropagator, outgoingCarrier)
+      baggage.inject(baggagePropagator, outgoingCarrier) *> ZIO.succeed(outgoingCarrier)
   }
 
   protected def after(res: Res) =
     ZIO.foreachDiscard(tracerAlgebra.responseAttributes(res).toVector) {
       case (k, v) => tracing.setAttribute(k, v)
     }
+
+  protected def toTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): Transport
 
   def interpretation: UIO[Interpretation]
 
