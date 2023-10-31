@@ -9,6 +9,8 @@ import zio.telemetry.opentelemetry.context.OutgoingContextCarrier
 import zio.telemetry.opentelemetry.tracing.{StatusMapper, Tracing}
 import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
+
+//TODO: use the algebra and then make different interpreters. This component can't be solely adapted. Make a base interpreter that provides the before and after methods, and move from there. One interpreter for sttp client, one for server, one for grpc client, one for server etc...
 /**
  * A Generic tracer for an RPC style interaction from the client POV.
  * Provides methods to set tracing context into the outgoing carrier

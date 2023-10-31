@@ -50,6 +50,7 @@ lazy val `tracing-grpc` =
     .settings(
       libraryDependencies ++= allGrpc ++ Seq(zio, zioTelemetry, otelGrpc, otelSdk)
     )
+    .dependsOn(`tracing-commons`)
 
 lazy val `tracing-kafka` =
   project
