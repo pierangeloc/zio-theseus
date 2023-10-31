@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, ZioStatusApi}
-import io.tuliplogic.ziotoolbox.tracing.sttp.client.OpenTelemetryTracingZioBackend
+import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpZioBackend
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.ztapir._
@@ -41,7 +41,7 @@ object ProxyApp extends ZIOAppDefault {
     Server.Config.default.binding("localhost", port)
   )
 
-  val zioHttpApp: HttpApp[OpenTelemetryTracingZioBackend with Tracing with Baggage with Producer, Throwable] =
+  val zioHttpApp: HttpApp[TracingSttpZioBackend with Tracing with Baggage with Producer, Throwable] =
     ZioHttpInterpreter().toHttp(
       StatusEndpoints.proxyStatusesEndpoint.zServerLogic { qp =>
         val parallel = qp.get("parallel").contains("true")
@@ -57,12 +57,12 @@ object ProxyApp extends ZIOAppDefault {
       }
     )
 
-  val httpTracingLayer: URLayer[Tracing with Baggage, OpenTelemetryTracingZioBackend] = ZLayer.fromZIO {
+  val httpTracingLayer: URLayer[Tracing with Baggage, TracingSttpZioBackend] = ZLayer.fromZIO {
     for {
       be <- HttpClientZioBackend().orDie
       tracing <- ZIO.service[Tracing]
       baggage <- ZIO.service[Baggage]
-    } yield OpenTelemetryTracingZioBackend(be, tracing, baggage)
+    } yield TracingSttpZioBackend(be, tracing, baggage)
   }
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {

@@ -1,6 +1,6 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
-import io.tuliplogic.ziotoolbox.tracing.sttp.client.OpenTelemetryTracingZioBackend
+import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpZioBackend
 import sttp.client3.UriContext
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
@@ -57,7 +57,7 @@ object HttpBackendClient {
     be => be.send(req)
   ).unit
 
-  def tracingCall: ZIO[OpenTelemetryTracingZioBackend, Throwable, Unit] = ZIO.serviceWithZIO[OpenTelemetryTracingZioBackend](_.send(req)).unit
+  def tracingCall: ZIO[TracingSttpZioBackend, Throwable, Unit] = ZIO.serviceWithZIO[TracingSttpZioBackend](_.send(req)).unit
 
 }
 
