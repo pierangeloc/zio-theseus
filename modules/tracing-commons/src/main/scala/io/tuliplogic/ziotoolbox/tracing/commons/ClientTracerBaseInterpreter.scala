@@ -1,13 +1,13 @@
 package io.tuliplogic.ziotoolbox.tracing.commons
 
-import zio.ZIO
+import zio.{UIO, ZIO}
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.baggage.propagation.BaggagePropagator
 import zio.telemetry.opentelemetry.context.OutgoingContextCarrier
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
-trait ClientTracerBaseInterpreter[Req, Res, Transport] {
+trait ClientTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   def tracing: Tracing
   def baggage: Baggage
   def tracerAlgebra: ClientTracerAlgebra[Req, Res]
@@ -30,5 +30,7 @@ trait ClientTracerBaseInterpreter[Req, Res, Transport] {
     ZIO.foreachDiscard(tracerAlgebra.responseAttributes(res).toVector) {
       case (k, v) => tracing.setAttribute(k, v)
     }
+
+  def interpretation: UIO[Interpretation]
 
 }
