@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.sttp.client
 
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.{SpanKind, StatusCode}
-import io.tuliplogic.ziotoolbox.tracing.commons.{ClientTracer, ClientTracerAlgebra, ClientTracerBaseInterpreter}
+import io.tuliplogic.ziotoolbox.tracing.commons.{ClientTracerAlgebra, ClientTracerBaseInterpreter}
 import sttp.capabilities.zio.ZioStreams
 import sttp.capabilities.{Effect, WebSockets}
 import sttp.client3.httpclient.zio.SttpClient

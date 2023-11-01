@@ -57,7 +57,7 @@ object ClientTracing {
       )
   }
 
-  def clientTracingInterceptor(tracing: Tracing, baggage: Baggage, tracerAlgebra: ClientTracerAlgebra[Any, Any] = defaultGrpcClientTracerAlgebra): UIO[ZClientInterceptor] =
+  def clientTracingInterceptor(tracing: Tracing, baggage: Baggage, tracerAlgebra: ClientTracerAlgebra[Any, Any]): UIO[ZClientInterceptor] =
     new ClientTracingInterpreter(tracerAlgebra, tracing, baggage).interpretation
 
   /** In a typical situation, generate the client this way
@@ -71,13 +71,14 @@ object ClientTracing {
   def serviceClient[S](
     host: String,
     port: Int,
+    tracerAlgebra: ClientTracerAlgebra[Any, Any] = defaultGrpcClientTracerAlgebra
   )(
     scopedClient: ZManagedChannel => ZIO[Scope, Throwable, S]
   ): ZIO[Tracing with Baggage with Scope, Throwable, S] =
     for {
       tracing <- ZIO.service[Tracing]
       baggage <- ZIO.service[Baggage]
-      tracingInterceptor <- clientTracingInterceptor(tracing, baggage)
+      tracingInterceptor <- clientTracingInterceptor(tracing, baggage, tracerAlgebra)
       channel = ZManagedChannel(
         builder = ManagedChannelBuilder
           .forAddress(host, port)
