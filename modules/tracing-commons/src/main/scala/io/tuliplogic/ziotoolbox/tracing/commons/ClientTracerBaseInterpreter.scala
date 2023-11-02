@@ -17,7 +17,7 @@ trait ClientTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   protected val tracingPropagator: TraceContextPropagator = TraceContextPropagator.default
   protected val baggagePropagator: BaggagePropagator = BaggagePropagator.default
 
-  protected def before(req: Req) = {
+  protected def beforeRequest(req: Req) = {
 
     val outgoingCarrier = OutgoingContextCarrier.default()
 
@@ -28,12 +28,12 @@ trait ClientTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
       baggage.inject(baggagePropagator, outgoingCarrier) *> ZIO.succeed(outgoingCarrier)
   }
 
-  protected def after(res: Res) =
+  protected def afterResponse(res: Res) =
     ZIO.foreachDiscard(tracerAlgebra.responseAttributes(res).toVector) {
       case (k, v) => tracing.setAttribute(k, v)
     }
 
-  protected def toTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): Transport
+  protected def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): Transport
 
   def interpretation: UIO[Interpretation]
 

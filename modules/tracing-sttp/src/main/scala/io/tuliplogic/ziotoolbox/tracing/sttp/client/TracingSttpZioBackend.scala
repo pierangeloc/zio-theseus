@@ -24,7 +24,7 @@ class TracingSttpZioBackend(
     val baggage: Baggage,
   ) extends ClientTracerBaseInterpreter[Request[_, _], Response[_], List[Header], DelegateSttpBackend[Task, ZioStreams with WebSockets]]  {
 
-  override def toTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): List[Header] =
+  override def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): List[Header] =
     carrier.kernel.map(kv => Header(kv._1, kv._2)).toList
 
   override def interpretation: UIO[DelegateSttpBackend[Task, ZioStreams with WebSockets]] =
@@ -36,19 +36,19 @@ class TracingSttpZioBackend(
                                                                                  request: Request[T, R]
                                                                                ): Task[Response[T]] = {
           for {
-            outgoingCarrier <- before(request)
+            outgoingCarrier <- beforeRequest(request)
             res <- tracing.span(
               spanName = tracerAlgebra.spanName(request),
               spanKind = SpanKind.CLIENT,
               statusMapper = StatusMapper.failureThrowable(_ => StatusCode.ERROR),
               attributes = tracerAlgebra
-                .requestAttributes(request.headers(toTransport(outgoingCarrier): _*))
+                .requestAttributes(request.headers(carrierToTransport(outgoingCarrier): _*))
                 .foldLeft(Attributes.builder())((builder, kv) => builder.put(kv._1, kv._2))
                 .build(),
             )(
               for {
                 res <- delegate.send(request)
-                _ <- after(res)
+                _ <- afterResponse(res)
               } yield res
             )
           } yield res

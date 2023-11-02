@@ -18,7 +18,7 @@ class ClientTracingInterpreter(
   val baggage: Baggage,
 ) extends ClientTracerBaseInterpreter[Any, Any, Map[Metadata.Key[String], String], ZClientInterceptor] {
 
-  override def toTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): Map[Metadata.Key[String], String] =
+  override def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): Map[Metadata.Key[String], String] =
     carrier.kernel.map(kv => Metadata.Key.of(kv._1, Metadata.ASCII_STRING_MARSHALLER) -> kv._2).toMap
 
   override def interpretation: UIO[ZClientInterceptor] = ZIO.succeed(
@@ -30,7 +30,7 @@ class ClientTracingInterpreter(
       ) =>
         metadata.wrapZIO { m =>
           for {
-            outgoingCarrier <- before(())
+            outgoingCarrier <- beforeRequest(())
             _ <- ZIO.succeed {
               outgoingCarrier.kernel.foreach {
                 case (k, v) =>
