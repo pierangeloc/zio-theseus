@@ -10,7 +10,7 @@ import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   def tracing: Tracing
   def baggage: Baggage
-  def tracerAlgebra: ServerTracerAlgebra[Req, Res]
+  def tracerAlgebra: TracerAlgebra[Req, Res]
 
   protected val tracingPropagator: TraceContextPropagator = TraceContextPropagator.default
   protected val baggagePropagator: BaggagePropagator = BaggagePropagator.default
@@ -20,6 +20,4 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
 
 }
 
-
-trait ServerTracerAlgebra[Req, Res]
 

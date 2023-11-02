@@ -12,7 +12,7 @@ import scala.collection.mutable
 trait ClientTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   def tracing: Tracing
   def baggage: Baggage
-  def tracerAlgebra: ClientTracerAlgebra[Req, Res]
+  def tracerAlgebra: TracerAlgebra[Req, Res]
 
   protected val tracingPropagator: TraceContextPropagator = TraceContextPropagator.default
   protected val baggagePropagator: BaggagePropagator = BaggagePropagator.default

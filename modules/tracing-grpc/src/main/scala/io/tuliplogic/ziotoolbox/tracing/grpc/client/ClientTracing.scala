@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.grpc.client
 
 import io.grpc.{ManagedChannelBuilder, Metadata}
-import io.tuliplogic.ziotoolbox.tracing.commons.{ClientTracerAlgebra, ClientTracerBaseInterpreter}
+import io.tuliplogic.ziotoolbox.tracing.commons.{TracerAlgebra, ClientTracerBaseInterpreter}
 import scalapb.zio_grpc.{ZClientInterceptor, ZManagedChannel}
 import zio.{Scope, UIO, ZIO}
 import zio.telemetry.opentelemetry.baggage.Baggage
@@ -13,9 +13,9 @@ import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 import scala.collection.mutable
 
 class ClientTracingInterpreter(
-  val tracerAlgebra: ClientTracerAlgebra[Any, Any],
-  val tracing: Tracing,
-  val baggage: Baggage,
+                                val tracerAlgebra: TracerAlgebra[Any, Any],
+                                val tracing: Tracing,
+                                val baggage: Baggage,
 ) extends ClientTracerBaseInterpreter[Any, Any, Map[Metadata.Key[String], String], ZClientInterceptor] {
 
   override def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): Map[Metadata.Key[String], String] =
@@ -46,9 +46,9 @@ class ClientTracingInterpreter(
 
 object ClientTracing {
 
-  val tracerDsl = ClientTracerAlgebra.dsl[Any, Any]
+  val tracerDsl = TracerAlgebra.dsl[Any, Any]
 
-  val defaultGrpcClientTracerAlgebra: ClientTracerAlgebra[Any, Any] = {
+  val defaultGrpcClientTracerAlgebra: TracerAlgebra[Any, Any] = {
     import tracerDsl._
       withRequestAttributes(req =>
         Map(
@@ -57,7 +57,7 @@ object ClientTracing {
       )
   }
 
-  def clientTracingInterceptor(tracing: Tracing, baggage: Baggage, tracerAlgebra: ClientTracerAlgebra[Any, Any]): UIO[ZClientInterceptor] =
+  def clientTracingInterceptor(tracing: Tracing, baggage: Baggage, tracerAlgebra: TracerAlgebra[Any, Any]): UIO[ZClientInterceptor] =
     new ClientTracingInterpreter(tracerAlgebra, tracing, baggage).interpretation
 
   /** In a typical situation, generate the client this way
@@ -71,7 +71,7 @@ object ClientTracing {
   def serviceClient[S](
     host: String,
     port: Int,
-    tracerAlgebra: ClientTracerAlgebra[Any, Any] = defaultGrpcClientTracerAlgebra
+    tracerAlgebra: TracerAlgebra[Any, Any] = defaultGrpcClientTracerAlgebra
   )(
     scopedClient: ZManagedChannel => ZIO[Scope, Throwable, S]
   ): ZIO[Tracing with Baggage with Scope, Throwable, S] =

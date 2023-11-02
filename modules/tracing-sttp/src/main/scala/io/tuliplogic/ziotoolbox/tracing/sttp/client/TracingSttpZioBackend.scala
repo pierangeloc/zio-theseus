@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.sttp.client
 
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.{SpanKind, StatusCode}
-import io.tuliplogic.ziotoolbox.tracing.commons.{ClientTracerAlgebra, ClientTracerBaseInterpreter}
+import io.tuliplogic.ziotoolbox.tracing.commons.{TracerAlgebra, ClientTracerBaseInterpreter}
 import sttp.capabilities.zio.ZioStreams
 import sttp.capabilities.{Effect, WebSockets}
 import sttp.client3.httpclient.zio.SttpClient
@@ -18,10 +18,10 @@ import scala.collection.mutable
 //TODO: check this https://discord.com/channels/629491597070827530/639825316021272602/1161591495598551061
 
 class TracingSttpZioBackend(
-    delegate: SttpClient,
-    val tracerAlgebra: ClientTracerAlgebra[Request[_, _], Response[_]],
-    val tracing: Tracing,
-    val baggage: Baggage,
+                             delegate: SttpClient,
+                             val tracerAlgebra: TracerAlgebra[Request[_, _], Response[_]],
+                             val tracing: Tracing,
+                             val baggage: Baggage,
   ) extends ClientTracerBaseInterpreter[Request[_, _], Response[_], List[Header], DelegateSttpBackend[Task, ZioStreams with WebSockets]]  {
 
   override def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): List[Header] =
@@ -63,14 +63,14 @@ object TracingSttpZioBackend {
              other: SttpClient,
              tracing: Tracing,
              baggage: Baggage,
-             tracerAlgebra: ClientTracerAlgebra[Request[_, _], Response[_]] = defaultSttpClientTracerAlgebra,
+             tracerAlgebra: TracerAlgebra[Request[_, _], Response[_]] = defaultSttpClientTracerAlgebra,
            ): UIO[DelegateSttpBackend[Task, ZioStreams with WebSockets]] =
     new TracingSttpZioBackend(other, tracerAlgebra, tracing, baggage)
       .interpretation
 
-  val tracerDsl = ClientTracerAlgebra.dsl[Request[_, _], Response[_]]
+  val tracerDsl = TracerAlgebra.dsl[Request[_, _], Response[_]]
 
-  val defaultSttpClientTracerAlgebra: ClientTracerAlgebra[Request[_, _], Response[_]] = {
+  val defaultSttpClientTracerAlgebra: TracerAlgebra[Request[_, _], Response[_]] = {
     import tracerDsl._
     spanName(req => s"HTTP ${req.showBasic}") &
       withRequestAttributes(req =>
