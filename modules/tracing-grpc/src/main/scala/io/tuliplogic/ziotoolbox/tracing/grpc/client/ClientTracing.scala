@@ -30,11 +30,11 @@ class ClientTracingInterpreter(
       ) =>
         metadata.wrapZIO { m =>
           for {
-            outgoingCarrier <- beforeRequest(())
+            outgoingCarrier <- beforeSendingRequest(())
             _ <- ZIO.succeed {
-              outgoingCarrier.kernel.foreach {
+              carrierToTransport(outgoingCarrier).foreach {
                 case (k, v) =>
-                  m.put(Metadata.Key.of(k, Metadata.ASCII_STRING_MARSHALLER), v)
+                  m.put(k, v)
               }
             }
           } yield ()

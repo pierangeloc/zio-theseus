@@ -1,8 +1,11 @@
 package io.tuliplogic.ziotoolbox.tracing.commons
 
+import io.opentelemetry.api.common.Attributes
+
 
 /**
  * A tracer algebra. When one of the type parameters is set to Any, it means it is not used
+ *
  * @tparam Req
  * @tparam Res
  */
@@ -15,6 +18,10 @@ trait TracerAlgebra[Req, Res] {
 }
 
 object TracerAlgebra {
+  def makeAttributes(map: Map[String, String]): Attributes =
+    map.foldLeft(Attributes.builder())((builder, kv) => builder.put(kv._1, kv._2))
+      .build()
+
   case class Const[Req, Res](attrs: Map[String, String]) extends TracerAlgebra[Req, Res] {
     override def spanName(request: Req): String = ""
     override def requestAttributes(req: Req): Map[String, String] = attrs

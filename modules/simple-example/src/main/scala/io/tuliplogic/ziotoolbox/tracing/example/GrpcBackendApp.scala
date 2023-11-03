@@ -2,9 +2,9 @@ package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, StatusResponse, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.grpc.client.ClientTracing
-import io.tuliplogic.ziotoolbox.tracing.grpc.server.ServerTracing
+import io.tuliplogic.ziotoolbox.tracing.grpc.server.GrpcServerTracing
 import io.grpc.{ServerBuilder, StatusException}
-import scalapb.zio_grpc.{RequestContext, Server, ServerLayer, ServiceList}
+import scalapb.zio_grpc.{RequestContext, Server, ServerLayer, ServiceList, ZTransform}
 import zio._
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.context.ContextStorage
@@ -40,8 +40,8 @@ object GrpcBackend2 extends ZIOAppDefault {
     ServerLayer.fromServiceList(ServerBuilder.forPort(port), serviceList)
   }
 
-  val live: ZLayer[Baggage with Tracing with CallRecordRepository, Nothing, ZioStatusApi.GGetStatusApi[RequestContext, StatusException]] = ZLayer {
-    ServerTracing.serviceWithTracing[CallRecordRepository, ZioStatusApi.GetStatusApi](
+  val live: ZLayer[ZTransform[Any, RequestContext] with CallRecordRepository, Nothing, ZioStatusApi.GGetStatusApi[RequestContext, StatusException]] = ZLayer {
+    GrpcServerTracing.serviceWithTracing[CallRecordRepository, ZioStatusApi.GetStatusApi](
       evseLookup => new GetStatusApiImpl(evseLookup)
     )
   }
@@ -55,6 +55,7 @@ object GrpcBackend2 extends ZIOAppDefault {
       Baggage.logAnnotated,
       ContextStorage.fiberRef,
       JaegerTracer.default,
+      GrpcServerTracing.layer()
     )
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {

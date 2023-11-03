@@ -36,7 +36,7 @@ class TracingSttpZioBackend(
                                                                                  request: Request[T, R]
                                                                                ): Task[Response[T]] = {
           for {
-            outgoingCarrier <- beforeRequest(request)
+            outgoingCarrier <- beforeSendingRequest(request)
             res <- tracing.span(
               spanName = tracerAlgebra.spanName(request),
               spanKind = SpanKind.CLIENT,
@@ -48,7 +48,7 @@ class TracingSttpZioBackend(
             )(
               for {
                 res <- delegate.send(request)
-                _ <- afterResponse(res)
+                _ <- afterReceivingResponse(res)
               } yield res
             )
           } yield res
