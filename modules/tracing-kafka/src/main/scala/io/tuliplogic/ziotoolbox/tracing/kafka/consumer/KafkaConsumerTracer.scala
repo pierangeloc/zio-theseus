@@ -15,6 +15,8 @@ trait KafkaConsumerTracer {
   def spanProcessing[K, V, R, E, A](record: ConsumerRecord[K, V])(effect: ZIO[R, E, A]): ZIO[R, E, A]
 }
 
+
+//TODO: find a way to specify the span name not only through the algebra. Like I want different consumers to use different span names
   object KafkaConsumerTracer {
 
     def defaultConsumerTracingAlgebra(consumerSpanName: String): TracerAlgebra[ConsumerRecord[_, _], Any] = {
