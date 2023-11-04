@@ -105,6 +105,8 @@ class TapirTracingInterpreter(
   val baggage: Baggage
 ) extends ServerTracerBaseInterpreter[Endpoint[_, _, _, _, _], Any, List[Header], TapirTracingInterpretation] {
 
+  override val spanKind: SpanKind = SpanKind.SERVER
+
   override def transportToCarrier(headers: List[Header]): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(
       new IncomingContextCarrier[Map[String, String]] {

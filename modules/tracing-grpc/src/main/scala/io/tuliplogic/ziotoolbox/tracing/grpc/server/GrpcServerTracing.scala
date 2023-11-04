@@ -12,13 +12,13 @@ import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.baggage.propagation.BaggagePropagator
 import zio.telemetry.opentelemetry.context.IncomingContextCarrier
 import zio.telemetry.opentelemetry.tracing.Tracing
-import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
 import scala.jdk.CollectionConverters._
 
 //TODO: maybe better to keep Req = Ctx, transport = Metadata, Res = Any
 class GrpcServerTracing(val tracerAlgebra: TracerAlgebra[RequestContext, Any], val tracing: Tracing, val baggage: Baggage)
     extends ServerTracerBaseInterpreter[RequestContext, Any, Metadata, ZTransform[Any, RequestContext]] {
+  override val spanKind: SpanKind = SpanKind.SERVER
   override def transportToCarrier(metadata: Metadata): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(
       new IncomingContextCarrier[Map[String, String]] {

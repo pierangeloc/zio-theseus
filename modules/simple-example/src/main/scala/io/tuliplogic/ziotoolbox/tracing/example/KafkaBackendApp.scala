@@ -1,6 +1,6 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
-import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.ConsumerTracing
+import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.KafkaConsumerTracer
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
@@ -24,13 +24,13 @@ object KafkaBackendApp extends ZIOAppDefault {
       _ <- repo.saveRecord(CallRecordRepository.CallRecord(now, s"Kafka consumer record ${now.toEpochMilli / 100}"))
     } yield ()
 
-  val consumer: ZStream[Consumer with Baggage with Tracing with CallRecordRepository, Throwable, Nothing] =
+  val consumer: ZStream[Consumer with Baggage with Tracing with CallRecordRepository with KafkaConsumerTracer, Throwable, Nothing] =
     Consumer
       .plainStream(Subscription.topics("ziotelemetry"), Serde.long, Serde.string)
       .tap(r =>
         for {
           _ <- ZIO.logInfo(s"Consumed record ${r}, now saving record")
-          _ <- process(r.record) @@ ConsumerTracing.kafkaTracedSpan("kafka-processing")(r.record)
+          _ <- process(r.record) @@ KafkaConsumerTracer.kafkaTraced(r.record)
         } yield r
       )
       .map(_.offset)
@@ -58,6 +58,7 @@ object KafkaBackendApp extends ZIOAppDefault {
         ContextStorage.fiberRef,
         Tracing.live,
         JaegerTracer.default,
+        KafkaConsumerTracer.layer(KafkaConsumerTracer.defaultConsumerTracingAlgebra("kafka-consumer"))
       )
   }
 }

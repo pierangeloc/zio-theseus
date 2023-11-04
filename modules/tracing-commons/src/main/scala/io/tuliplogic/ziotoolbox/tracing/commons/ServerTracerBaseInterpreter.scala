@@ -9,6 +9,7 @@ import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
 trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
+  val spanKind: SpanKind
   def tracing: Tracing
   def baggage: Baggage
   def tracerAlgebra: TracerAlgebra[Req, Res]
@@ -25,7 +26,7 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
         propagator = tracingPropagator,
         carrier = carrier,
         spanName = spanName,
-        spanKind = SpanKind.SERVER,  // TODO: Externalise, this can be also consumer,
+        spanKind = spanKind,  // TODO: Externalise, this can be also consumer,
         attributes = TracerAlgebra.makeAttributes(tracerAlgebra.requestAttributes(req))
       )(effect)
     } yield res
