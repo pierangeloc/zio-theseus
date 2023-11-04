@@ -54,7 +54,7 @@ object GrpcBackend2 extends ZIOAppDefault {
       Tracing.live,
       Baggage.logAnnotated,
       ContextStorage.fiberRef,
-      JaegerTracer.default,
+      JaegerTracer.default("grpc-backend-app"),
       GrpcServerTracing.layer()
     )
 

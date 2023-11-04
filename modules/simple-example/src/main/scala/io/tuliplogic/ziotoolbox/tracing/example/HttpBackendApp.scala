@@ -52,7 +52,7 @@ object HttpBackendApp extends ZIOAppDefault {
           Tracing.live,
           Baggage.logAnnotated,
           ContextStorage.fiberRef,
-          JaegerTracer.default,
+          JaegerTracer.default("http-backend-app"),
           TapirTracingInterpretation.layer()
         )
 }

@@ -81,7 +81,7 @@ object ProxyApp extends ZIOAppDefault {
         Tracing.live,
         Baggage.logAnnotated,
         ContextStorage.fiberRef,
-        JaegerTracer.default,
+        JaegerTracer.default("proxy-app"),
         KafkaClient.producerLayer,
         KafkaRecordTracer.layer(),
 

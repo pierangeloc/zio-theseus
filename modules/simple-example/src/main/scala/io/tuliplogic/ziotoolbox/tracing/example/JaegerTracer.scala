@@ -12,8 +12,8 @@ import zio._
 
 object JaegerTracer {
 
-  val default = live("http://localhost:4317", "SRS-opentelemetry-zio")
-  val className = getClass.getCanonicalName
+  def default(serviceName: String) = live("http://localhost:4317", serviceName)
+
   def live(host: String, serviceName: String): ULayer[Tracer] =
     ZLayer {
       for {
@@ -34,7 +34,7 @@ object JaegerTracer {
             .build()
         )
       openTelemetry  <- ZIO.succeed(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build())
-      tracer         <- ZIO.succeed(openTelemetry.getTracer(className))
+      tracer         <- ZIO.succeed(openTelemetry.getTracer(classOf[OpenTelemetrySdk].getCanonicalName))
     } yield tracer
 
 }

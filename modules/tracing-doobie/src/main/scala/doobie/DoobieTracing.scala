@@ -17,7 +17,7 @@ import zio.interop.catz._
 
 object DoobieTracing {
 
-    private def cleanFragmentSql(f: Fragment) = f.toString().drop("Fragment(\" ".length).dropRight("\")".length)
+    private def cleanFragmentSql(f: Fragment) = f.toString().drop("Fragment(\" ".length).dropRight("\")".length).trim
 
     /**
      *

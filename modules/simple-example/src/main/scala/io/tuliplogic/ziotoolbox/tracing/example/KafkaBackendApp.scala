@@ -57,7 +57,7 @@ object KafkaBackendApp extends ZIOAppDefault {
         Baggage.logAnnotated,
         ContextStorage.fiberRef,
         Tracing.live,
-        JaegerTracer.default,
+        JaegerTracer.default("kafka-backend-app"),
         KafkaConsumerTracer.layer(KafkaConsumerTracer.defaultConsumerTracingAlgebra("kafka-consumer"))
       )
   }
@@ -95,7 +95,7 @@ object KafkaClient extends ZIOAppDefault {
       Tracing.live,
       Baggage.logAnnotated,
       ContextStorage.fiberRef,
-      JaegerTracer.default,
+      JaegerTracer.default("kafka-backend-app"),
       KafkaRecordTracer.layer()
     )
 }
