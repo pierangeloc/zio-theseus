@@ -15,11 +15,11 @@ import scala.jdk.CollectionConverters._
 
 object ProducerTracing {
 
-  trait TracedKafkaProducer {
+  trait KafkaRecordTracer {
     def tracedRecord[K, V](producerRecord: ProducerRecord[K, V]): UIO[ProducerRecord[K, V]]
   }
 
-  object TracedKafkaProduucer {
+  object KafkaRecordTracer {
     val tracerDsl = TracerAlgebra.dsl[ProducerRecord[_, _], Any]
 
     val defaultKafkaProducerTracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any] = {
@@ -32,7 +32,7 @@ object ProducerTracing {
       )
     }
 
-    def layer(tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any] = defaultKafkaProducerTracerAlgebra): ZLayer[Baggage with Tracing, Nothing, TracedKafkaProducer] = {
+    def layer(tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any] = defaultKafkaProducerTracerAlgebra): ZLayer[Baggage with Tracing, Nothing, KafkaRecordTracer] = {
       ZLayer.fromZIO {
         for {
           tracing <- ZIO.service[Tracing]
@@ -43,11 +43,11 @@ object ProducerTracing {
     }
 
 
-    def traced[K, V]: ZIOAspect[Nothing, TracedKafkaProducer, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] =
-      new ZIOAspect[Nothing, TracedKafkaProducer, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] {
-        override def apply[R >: Nothing <: TracedKafkaProducer, E >: Nothing <: Any, A >: ProducerRecord[K, V] <: ProducerRecord[K, V]](zio: ZIO[R, E, A])(implicit trace: Trace): ZIO[R, E, A] =
+    def traced[K, V]: ZIOAspect[Nothing, KafkaRecordTracer, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] =
+      new ZIOAspect[Nothing, KafkaRecordTracer, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] {
+        override def apply[R >: Nothing <: KafkaRecordTracer, E >: Nothing <: Any, A >: ProducerRecord[K, V] <: ProducerRecord[K, V]](zio: ZIO[R, E, A])(implicit trace: Trace): ZIO[R, E, A] =
           for {
-            tkp <- ZIO.service[TracedKafkaProducer]
+            tkp <- ZIO.service[KafkaRecordTracer]
             record <- zio
             tr <- tkp.tracedRecord(record)
           } yield tr
@@ -58,14 +58,14 @@ object ProducerTracing {
                                   val tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any],
                                   val tracing: Tracing,
                                   val baggage: Baggage,
-                                ) extends ClientTracerBaseInterpreter[ProducerRecord[_, _], Any, List[KafkaHeader], TracedKafkaProducer] {
+                                ) extends ClientTracerBaseInterpreter[ProducerRecord[_, _], Any, List[KafkaHeader], KafkaRecordTracer] {
     override protected def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): List[KafkaHeader] =
       carrier.kernel.toList.map {
         case (k, v) => new RecordHeader(k, v.getBytes("UTF-8"))
       }
 
-    override def interpretation: UIO[TracedKafkaProducer] = ZIO.succeed(
-      new TracedKafkaProducer {
+    override def interpretation: UIO[KafkaRecordTracer] = ZIO.succeed(
+      new KafkaRecordTracer {
         override def tracedRecord[K, V](producerRecord: ProducerRecord[K, V]): UIO[ProducerRecord[K, V]] =
           for {
             outgoingCarrier <- beforeSendingRequest(producerRecord)

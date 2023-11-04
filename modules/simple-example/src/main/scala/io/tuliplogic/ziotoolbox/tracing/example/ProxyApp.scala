@@ -1,6 +1,8 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, ZioStatusApi}
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpZioBackend
 import sttp.capabilities
 import sttp.capabilities.zio.ZioStreams
@@ -21,7 +23,7 @@ object ProxyApp extends ZIOAppDefault {
 //    TracingInstruments.defaultBootstrap
   val port = 9003
 
-  def performProxyCalls(parallel: Boolean) = if (parallel) {
+  def performProxyCalls(parallel: Boolean): ZIO[Producer with ProducerTracing.KafkaRecordTracer with Tracing with Baggage with DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets], Throwable, Unit] = if (parallel) {
     ZIO.logInfo("Running parallel calls") *>
     HttpBackendClient.tracingCall.timed.flatMap(o => ZIO.logInfo(s"http call - DONE - took ${o._1.toMillis} ms")) &>
       ZioStatusApi.GetStatusApiClient
@@ -44,7 +46,7 @@ object ProxyApp extends ZIOAppDefault {
     Server.Config.default.binding("localhost", port)
   )
 
-  val zioHttpApp: HttpApp[DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets] with Tracing with Baggage with Producer, Throwable] =
+  val zioHttpApp: HttpApp[DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets] with Tracing with Baggage with Producer with KafkaRecordTracer, Throwable] =
     ZioHttpInterpreter().toHttp(
       StatusEndpoints.proxyStatusesEndpoint.zServerLogic { qp =>
         val parallel = qp.get("parallel").contains("true")
@@ -80,7 +82,9 @@ object ProxyApp extends ZIOAppDefault {
         Baggage.logAnnotated,
         ContextStorage.fiberRef,
         JaegerTracer.default,
-        KafkaClient.producerLayer
+        KafkaClient.producerLayer,
+        KafkaRecordTracer.layer(),
+
       )
   }
 }

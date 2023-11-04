@@ -1,8 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.ConsumerTracing
-import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
-import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.{TracedKafkaProducer, TracedKafkaProduucer}
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
 import zio.kafka.consumer.{Consumer, ConsumerSettings, Subscription}
@@ -12,7 +11,7 @@ import zio.stream.ZStream
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.context.ContextStorage
 import zio.telemetry.opentelemetry.tracing.Tracing
-import zio.{ZIOAppDefault, _}
+import zio._
 
 object KafkaBackendApp extends ZIOAppDefault {
 
@@ -71,7 +70,7 @@ object KafkaClient extends ZIOAppDefault {
       )
     )
 
-  def produce: ZIO[Producer with TracedKafkaProducer, Throwable, RecordMetadata] = {
+  def produce: ZIO[Producer with KafkaRecordTracer, Throwable, RecordMetadata] = {
     (ZIO.succeed(
         new ProducerRecord[Long, String](
       "ziotelemetry",
@@ -79,7 +78,7 @@ object KafkaClient extends ZIOAppDefault {
       0L,
       1L,
       "Something"
-    )) @@ TracedKafkaProduucer.traced[Long, String])
+    )) @@ KafkaRecordTracer.traced[Long, String])
     .flatMap(r =>
         Producer.produce[Any, Long, String](
           r,
@@ -96,6 +95,6 @@ object KafkaClient extends ZIOAppDefault {
       Baggage.logAnnotated,
       ContextStorage.fiberRef,
       JaegerTracer.default,
-      TracedKafkaProduucer.layer()
+      KafkaRecordTracer.layer()
     )
 }
