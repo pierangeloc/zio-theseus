@@ -102,7 +102,8 @@ lazy val `simple-example` = project
       "ch.qos.logback" % "logback-classic" % "1.4.6",
       "net.logstash.logback" % "logstash-logback-encoder" % "7.2",
       "org.codehaus.janino" % "janino" % "3.1.7",
-      "org.tpolecat" %% "doobie-postgres" % doobieVersion
+      "org.tpolecat" %% "doobie-postgres" % doobieVersion,
+      "com.softwaremill.sttp.client3" %% "slf4j-backend" % "3.8.15",
     ),
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",

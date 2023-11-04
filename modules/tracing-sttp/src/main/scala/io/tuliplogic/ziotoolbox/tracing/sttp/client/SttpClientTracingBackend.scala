@@ -36,18 +36,19 @@ class TracingSttpZioBackend(
                                                                                  request: Request[T, R]
                                                                                ): Task[Response[T]] = {
           for {
+            _ <- ZIO.logInfo(s"TRACING_TROUBLESHOOTING: about to send request ${request.showBasic}")
             outgoingCarrier <- beforeSendingRequest(request)
             res <- tracing.span(
               spanName = tracerAlgebra.spanName(request),
               spanKind = SpanKind.CLIENT,
               statusMapper = StatusMapper.failureThrowable(_ => StatusCode.ERROR),
               attributes = tracerAlgebra
-                .requestAttributes(request.headers(carrierToTransport(outgoingCarrier): _*))
+                .requestAttributes(request)
                 .foldLeft(Attributes.builder())((builder, kv) => builder.put(kv._1, kv._2))
                 .build(),
             )(
               for {
-                res <- delegate.send(request)
+                res <- delegate.send(request.headers(carrierToTransport(outgoingCarrier): _*))
                 _ <- afterReceivingResponse(res)
               } yield res
             )

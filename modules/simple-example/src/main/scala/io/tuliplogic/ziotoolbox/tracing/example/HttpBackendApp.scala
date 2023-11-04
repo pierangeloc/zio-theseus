@@ -67,13 +67,9 @@ object HttpBackendClient {
     )
     .apply(())
 
-  def call: Task[Unit] = HttpClientZioBackend().flatMap(be => be.send(req)).unit
-
   def tracingCall: ZIO[DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets], Throwable, Unit] = ZIO
     .serviceWithZIO[DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets]](_.send(req))
     .unit
 }
 
-object TestHttpClient extends ZIOAppDefault {
-  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = HttpBackendClient.call
-}
+

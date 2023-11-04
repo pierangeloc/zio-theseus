@@ -8,6 +8,8 @@ import sttp.capabilities
 import sttp.capabilities.zio.ZioStreams
 import sttp.client3.DelegateSttpBackend
 import sttp.client3.httpclient.zio.HttpClientZioBackend
+import sttp.client3.logging.{LogLevel, LoggingBackend}
+import sttp.client3.logging.slf4j.Slf4jLogger
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.ztapir._
 import zio.http.{HttpApp, Server}
@@ -67,7 +69,15 @@ object ProxyApp extends ZIOAppDefault {
       be <- HttpClientZioBackend().orDie
       tracing <- ZIO.service[Tracing]
       baggage <- ZIO.service[Baggage]
-      be <- TracingSttpZioBackend(be, tracing, baggage)
+      be <- TracingSttpZioBackend(
+        LoggingBackend(
+          delegate = be,
+          logger = new Slf4jLogger("sttp.client3.logging",be.responseMonad),
+          logRequestHeaders = true,
+          beforeRequestSendLogLevel = LogLevel.Info
+        ),
+
+        tracing, baggage)
     } yield be
   }
 
