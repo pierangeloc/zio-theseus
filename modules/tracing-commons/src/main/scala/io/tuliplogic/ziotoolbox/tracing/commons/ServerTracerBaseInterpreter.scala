@@ -1,11 +1,11 @@
 package io.tuliplogic.ziotoolbox.tracing.commons
 
-import io.opentelemetry.api.trace.SpanKind
+import io.opentelemetry.api.trace.{SpanContext, SpanKind}
 import zio.{UIO, ZIO}
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.baggage.propagation.BaggagePropagator
-import zio.telemetry.opentelemetry.context.{IncomingContextCarrier, OutgoingContextCarrier}
-import zio.telemetry.opentelemetry.tracing.Tracing
+import zio.telemetry.opentelemetry.context.IncomingContextCarrier
+import zio.telemetry.opentelemetry.tracing.{StatusMapper, Tracing}
 import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
 trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
@@ -17,8 +17,7 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   protected val tracingPropagator: TraceContextPropagator = TraceContextPropagator.default
   protected val baggagePropagator: BaggagePropagator = BaggagePropagator.default
 
-
-  protected def spanOnRequest[R, E, A](req: Req, transport: Transport)(spanName: String)(effect: ZIO[R, E, A]): ZIO[R, E, A] = {
+  protected def spanOnRequest[R, E, A](req: Req, transport: Transport)(spanName: String)(effect: ZIO[R, E, A], statusMapper: StatusMapper[E, A] = StatusMapper.default, links: Seq[SpanContext] = Nil): ZIO[R, E, A] = {
     for {
       carrier <- transportToCarrier(transport)
       _ <- baggage.extract(baggagePropagator, carrier)
@@ -26,8 +25,10 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
         propagator = tracingPropagator,
         carrier = carrier,
         spanName = spanName,
-        spanKind = spanKind,  // TODO: Externalise, this can be also consumer,
-        attributes = TracerAlgebra.makeAttributes(tracerAlgebra.requestAttributes(req))
+        spanKind = spanKind,
+        attributes = TracerAlgebra.makeAttributes(tracerAlgebra.requestAttributes(req)),
+        statusMapper,
+        links
       )(effect)
     } yield res
   }

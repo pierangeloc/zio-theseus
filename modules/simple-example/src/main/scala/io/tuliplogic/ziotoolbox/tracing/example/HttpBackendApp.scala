@@ -8,7 +8,7 @@ import zio.http.{HttpApp, Server}
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.{Scope, Task, ULayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
-import io.tuliplogic.ziotoolbox.tracing.sttp.server.{TapirTracingInterpretation, TapirTracingInterpreter}
+import io.tuliplogic.ziotoolbox.tracing.sttp.server.{TapirTracingInterpretation, TapirServerTracingInterpreter}
 import sttp.capabilities
 import sttp.capabilities.zio.ZioStreams
 import zio.telemetry.opentelemetry.context.ContextStorage

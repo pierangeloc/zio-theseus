@@ -17,71 +17,73 @@ trait KafkaConsumerTracer {
 
 
 //TODO: find a way to specify the span name not only through the algebra. Like I want different consumers to use different span names
-  object KafkaConsumerTracer {
+object KafkaConsumerTracer {
 
-    def defaultConsumerTracingAlgebra(consumerSpanName: String): TracerAlgebra[ConsumerRecord[_, _], Any] = {
-      val tracerDsl = TracerAlgebra.dsl[ConsumerRecord[_, _], Any]
+  def defaultConsumerTracingAlgebra(consumerSpanName: String): TracerAlgebra[ConsumerRecord[_, _], Any] = {
+    val tracerDsl = TracerAlgebra.dsl[ConsumerRecord[_, _], Any]
 
-      import tracerDsl._
-      withRequestAttributes(req =>
-        Map(
-          "kafka.topic"     -> req.topic(),
-          "kafka.partition" -> req.partition().toString
-        )
-      ) & spanName(_ => consumerSpanName)
+    import tracerDsl._
+    withRequestAttributes(req =>
+      Map(
+        "kafka.topic"     -> req.topic(),
+        "kafka.partition" -> req.partition().toString
+      )
+    ) & spanName(_ => consumerSpanName)
+  }
+  def layer(
+    algebra: TracerAlgebra[ConsumerRecord[_, _], Any]
+  ): ZLayer[Baggage with Tracing, Nothing, KafkaConsumerTracer] =
+    ZLayer.fromZIO {
+      for {
+        tracing <- ZIO.service[Tracing]
+        baggage <- ZIO.service[Baggage]
+        tracer  <- new ConsumerTracingInterpreter(algebra, tracing, baggage).interpretation
+      } yield tracer
     }
-    def layer(
-      algebra: TracerAlgebra[ConsumerRecord[_, _], Any]
-    ): ZLayer[Baggage with Tracing, Nothing, KafkaConsumerTracer] =
-      ZLayer.fromZIO {
-        for {
-          tracing <- ZIO.service[Tracing]
-          baggage <- ZIO.service[Baggage]
-          tracer  <- new ConsumerTracingInterpreter(algebra, tracing, baggage).interpretation
-        } yield tracer
-      }
 
 
+  object aspects {
     def kafkaTraced[K, V](
-                                 record: ConsumerRecord[K, V]
-                               ): ZIOAspect[Nothing, KafkaConsumerTracer, Nothing, Any, Nothing, Any] =
+                           record: ConsumerRecord[K, V]
+                         ): ZIOAspect[Nothing, KafkaConsumerTracer, Nothing, Any, Nothing, Any] =
       new ZIOAspect[Nothing, KafkaConsumerTracer, Nothing, Any, Nothing, Any] {
         override def apply[R >: Nothing <: KafkaConsumerTracer, E >: Nothing <: Any, A >: Nothing <: Any](
-                                                                                                            zio: ZIO[R, E, A]
-                                                                                                          )(implicit trace: Trace): ZIO[R, E, A] =
+                                                                                                           zio: ZIO[R, E, A]
+                                                                                                         )(implicit trace: Trace): ZIO[R, E, A] =
           ZIO.serviceWithZIO[KafkaConsumerTracer](_.spanProcessing(record)(zio))
       }
   }
+}
 
-  class ConsumerTracingInterpreter(
-    val tracerAlgebra: TracerAlgebra[ConsumerRecord[_, _], Any],
-    val tracing: Tracing,
-    val baggage: Baggage
-  ) extends ServerTracerBaseInterpreter[ConsumerRecord[_, _], Any, List[KafkaHeader], KafkaConsumerTracer] {
-    interpreter =>
+private class ConsumerTracingInterpreter(
+  val tracerAlgebra: TracerAlgebra[ConsumerRecord[_, _], Any],
+  val tracing: Tracing,
+  val baggage: Baggage
+) extends ServerTracerBaseInterpreter[ConsumerRecord[_, _], Any, List[KafkaHeader], KafkaConsumerTracer] {
+  interpreter =>
 
-    override val spanKind: SpanKind = SpanKind.CONSUMER
+  override val spanKind: SpanKind = SpanKind.CONSUMER
 
-    override def transportToCarrier(headers: List[KafkaHeader]): UIO[IncomingContextCarrier[Map[String, String]]] =
-      ZIO.succeed(
-        new IncomingContextCarrier[Map[String, String]] {
-          override def getAllKeys(carrier: Map[String, String]): Iterable[String] = carrier.keys
+  override def transportToCarrier(headers: List[KafkaHeader]): UIO[IncomingContextCarrier[Map[String, String]]] =
+    ZIO.succeed(
+      new IncomingContextCarrier[Map[String, String]] {
+        override def getAllKeys(carrier: Map[String, String]): Iterable[String] = carrier.keys
 
-          override def getByKey(carrier: Map[String, String], key: String): Option[String] =
-            carrier.get(key)
+        override def getByKey(carrier: Map[String, String], key: String): Option[String] =
+          carrier.get(key)
 
-          override val kernel: Map[String, String] =
-            headers.map(h => (h.key, new String(h.value, StandardCharsets.UTF_8))).toMap
-        }
-      )
+        override val kernel: Map[String, String] =
+          headers.map(h => (h.key, new String(h.value, StandardCharsets.UTF_8))).toMap
+      }
+    )
 
-    override def interpretation: UIO[KafkaConsumerTracer] =
-      ZIO.succeed(
-        new KafkaConsumerTracer {
-          override def spanProcessing[K, V, R, E, A](record: ConsumerRecord[K, V])(effect: ZIO[R, E, A]): ZIO[R, E, A] =
-            spanOnRequest(record, record.headers.toArray.toList)(tracerAlgebra.spanName(record))(effect)
-        }
-      )
+  override def interpretation: UIO[KafkaConsumerTracer] =
+    ZIO.succeed(
+      new KafkaConsumerTracer {
+        override def spanProcessing[K, V, R, E, A](record: ConsumerRecord[K, V])(effect: ZIO[R, E, A]): ZIO[R, E, A] =
+          spanOnRequest(record, record.headers.toArray.toList)(tracerAlgebra.spanName(record))(effect)
+      }
+    )
 }
 
 //

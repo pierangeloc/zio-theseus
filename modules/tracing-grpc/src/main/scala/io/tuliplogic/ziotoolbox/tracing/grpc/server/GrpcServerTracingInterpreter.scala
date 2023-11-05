@@ -4,7 +4,6 @@ import io.grpc.{Metadata, Status, StatusException}
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.semconv.SemanticAttributes
 import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
-import io.tuliplogic.ziotoolbox.tracing.grpc.client.ClientTracing.tracerDsl
 import scalapb.zio_grpc.{GeneratedService, RequestContext, ZTransform}
 import zio.{Tag, UIO, ZIO, ZLayer}
 import zio.stream.ZStream
@@ -15,8 +14,7 @@ import zio.telemetry.opentelemetry.tracing.Tracing
 
 import scala.jdk.CollectionConverters._
 
-//TODO: maybe better to keep Req = Ctx, transport = Metadata, Res = Any
-class GrpcServerTracing(val tracerAlgebra: TracerAlgebra[RequestContext, Any], val tracing: Tracing, val baggage: Baggage)
+class GrpcServerTracingInterpreter(val tracerAlgebra: TracerAlgebra[RequestContext, Any], val tracing: Tracing, val baggage: Baggage)
     extends ServerTracerBaseInterpreter[RequestContext, Any, Metadata, ZTransform[Any, RequestContext]] {
   override val spanKind: SpanKind = SpanKind.SERVER
   override def transportToCarrier(metadata: Metadata): UIO[IncomingContextCarrier[Map[String, String]]] =
@@ -95,7 +93,7 @@ class GrpcServerTracing(val tracerAlgebra: TracerAlgebra[RequestContext, Any], v
 
 }
 
-object GrpcServerTracing {
+object GrpcServerTracingInterpreter {
 
   val tracerDsl = TracerAlgebra.dsl[RequestContext, Any]
   val defaultGrpcServerTracerAlgebra: TracerAlgebra[RequestContext, Any] = {
@@ -114,7 +112,7 @@ object GrpcServerTracing {
       for {
         tracing <- ZIO.service[Tracing]
         baggage <- ZIO.service[Baggage]
-        interpreter = new GrpcServerTracing(grpcServerTracerAlgebra, tracing, baggage)
+        interpreter = new GrpcServerTracingInterpreter(grpcServerTracerAlgebra, tracing, baggage)
         interpretation <- interpreter.interpretation
       } yield interpretation
     }

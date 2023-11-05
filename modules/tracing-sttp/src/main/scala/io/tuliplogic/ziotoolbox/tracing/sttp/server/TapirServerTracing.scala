@@ -92,14 +92,14 @@ object TapirTracingInterpretation {
       for {
         tracing        <- ZIO.service[Tracing]
         baggage        <- ZIO.service[Baggage]
-        interpreter     = new TapirTracingInterpreter(tracerAlgebra, tracing, baggage)
+        interpreter     = new TapirServerTracingInterpreter(tracerAlgebra, tracing, baggage)
         interpretation <- interpreter.interpretation
       } yield interpretation
     }
 
 }
 
-class TapirTracingInterpreter(
+class TapirServerTracingInterpreter(
   val tracerAlgebra: TracerAlgebra[Endpoint[_, _, _, _, _], Any],
   val tracing: Tracing,
   val baggage: Baggage
