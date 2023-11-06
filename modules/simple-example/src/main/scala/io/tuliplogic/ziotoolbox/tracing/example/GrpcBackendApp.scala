@@ -40,22 +40,19 @@ object GrpcBackend2 extends ZIOAppDefault {
     ServerLayer.fromServiceList(ServerBuilder.forPort(port), serviceList)
   }
 
-  val live: ZLayer[ZTransform[Any, RequestContext] with CallRecordRepository, Nothing, ZioStatusApi.GGetStatusApi[RequestContext, StatusException]] = ZLayer {
-    GrpcServerTracingInterpreter.serviceWithTracing[CallRecordRepository, ZioStatusApi.GetStatusApi](
-      evseLookup => new GetStatusApiImpl(evseLookup)
-    )
-  }
+  val serviceLayer = GrpcServerTracingInterpreter.serviceWithTracing[CallRecordRepository, ZioStatusApi.GetStatusApi](
+    callRecordRepository => new GetStatusApiImpl(callRecordRepository)
+  )
 
   private def makeServer(port: Int) =
     ZLayer.make[Server](
       serverLive(port),
-      live,
+      serviceLayer,
       CallRecordRepository.workingRepoLayer,
       Tracing.live,
       Baggage.logAnnotated,
       ContextStorage.fiberRef,
       JaegerTracer.default("grpc-backend-app"),
-      GrpcServerTracingInterpreter.layer()
     )
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {

@@ -14,23 +14,29 @@ import zio.telemetry.opentelemetry.tracing.Tracing
 
 import scala.jdk.CollectionConverters._
 
-class GrpcServerTracingInterpreter(val tracerAlgebra: TracerAlgebra[RequestContext, Any], val tracing: Tracing, val baggage: Baggage)
-    extends ServerTracerBaseInterpreter[RequestContext, Any, Metadata, ZTransform[Any, RequestContext]] {
+class GrpcServerTracingInterpreter(
+  val tracerAlgebra: TracerAlgebra[RequestContext, Any],
+  val tracing: Tracing,
+  val baggage: Baggage
+) extends ServerTracerBaseInterpreter[RequestContext, Any, Metadata, ZTransform[Any, RequestContext]] {
   override val spanKind: SpanKind = SpanKind.SERVER
   override def transportToCarrier(metadata: Metadata): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(
       new IncomingContextCarrier[Map[String, String]] {
-      override val kernel: Map[String, String] =
-        metadata.keys().asScala.map(k => k -> metadata.get(Metadata.Key.of(k, Metadata.ASCII_STRING_MARSHALLER))).toMap
+        override val kernel: Map[String, String] =
+          metadata
+            .keys()
+            .asScala
+            .map(k => k -> metadata.get(Metadata.Key.of(k, Metadata.ASCII_STRING_MARSHALLER)))
+            .toMap
 
-      override def getAllKeys(carrier: Map[String, String]): Iterable[String] =
-        kernel.keys
+        override def getAllKeys(carrier: Map[String, String]): Iterable[String] =
+          kernel.keys
 
-      override def getByKey(carrier: Map[String, String], key: String): Option[String] =
-        carrier.get(key)
-    }
-  )
-
+        override def getByKey(carrier: Map[String, String], key: String): Option[String] =
+          carrier.get(key)
+      }
+    )
 
   //TODO: find a way to process success and failure by describing in the algebra what to do
 //  private def withSemanticAttributes[R, A](
@@ -68,9 +74,9 @@ class GrpcServerTracingInterpreter(val tracerAlgebra: TracerAlgebra[RequestConte
       ): RequestContext => ZIO[Any, StatusException, A] = { reqCtx =>
         for {
           metadata <- reqCtx.metadata.wrap(identity)
-          carrier   <- transportToCarrier(metadata)
+          carrier  <- transportToCarrier(metadata)
           _        <- baggage.extract(baggagePropagator, carrier)
-          res <- spanOnRequest(reqCtx, metadata)(reqCtx.methodDescriptor.getFullMethodName)(io(()))
+          res      <- spanOnRequest(reqCtx, metadata)(reqCtx.methodDescriptor.getFullMethodName)(io(()))
         } yield res
       }
 
@@ -79,17 +85,16 @@ class GrpcServerTracingInterpreter(val tracerAlgebra: TracerAlgebra[RequestConte
       ): RequestContext => ZStream[Any, StatusException, A] = { reqCtx =>
         val r: ZIO[Any, Nothing, ZStream[Any, StatusException, A]] = for {
           metadata <- reqCtx.metadata.wrap(identity)
-          carrier   <- transportToCarrier(metadata)
+          carrier  <- transportToCarrier(metadata)
           _        <- baggage.extract(BaggagePropagator.default, carrier)
           res <- spanOnRequest(reqCtx, metadata)(reqCtx.methodDescriptor.getFullMethodName)(
-            ZIO.succeed(io(()))
-          )
+                   ZIO.succeed(io(()))
+                 )
         } yield res
         ZStream.fromZIO(r).flatten
       }
     }
   )
-
 
 }
 
@@ -100,33 +105,31 @@ object GrpcServerTracingInterpreter {
     import tracerDsl._
     withRequestAttributes(reqCtx =>
       Map(
-        SemanticAttributes.RPC_SYSTEM.getKey -> "grpc-application",
-        SemanticAttributes.RPC_METHOD.getKey -> reqCtx.methodDescriptor.getFullMethodName,
-        SemanticAttributes.RPC_SERVICE.getKey -> reqCtx.methodDescriptor.getServiceName,
+        SemanticAttributes.RPC_SYSTEM.getKey  -> "grpc-application",
+        SemanticAttributes.RPC_METHOD.getKey  -> reqCtx.methodDescriptor.getFullMethodName,
+        SemanticAttributes.RPC_SERVICE.getKey -> reqCtx.methodDescriptor.getServiceName
       )
     )
   }
-
-  def layer(grpcServerTracerAlgebra: TracerAlgebra[RequestContext, Any] = defaultGrpcServerTracerAlgebra): ZLayer[Baggage with Tracing, Nothing, ZTransform[Any, RequestContext]] =
-    ZLayer.fromZIO {
-      for {
-        tracing <- ZIO.service[Tracing]
-        baggage <- ZIO.service[Baggage]
-        interpreter = new GrpcServerTracingInterpreter(grpcServerTracerAlgebra, tracing, baggage)
-        interpretation <- interpreter.interpretation
-      } yield interpretation
-    }
-
 
   /**
    * Given a generated service, makes a traced service that traces the call
    * using Tracing and Baggage coming from the headers in the message context
    */
   def serviceWithTracing[R: Tag, Service <: GeneratedService](
-    f: R => Service
-  ): ZIO[ZTransform[Any, RequestContext] with R, Nothing, Service#Generic[RequestContext, StatusException]] =
-    for {
-      zTransform <- ZIO.service[ZTransform[Any, RequestContext]]
-      env <- ZIO.service[R]
-    } yield f(env).transform(zTransform)
+    f: R => Service,
+    grpcServerTracerAlgebra: TracerAlgebra[RequestContext, Any] = defaultGrpcServerTracerAlgebra
+  )(implicit
+    serviceTag: Tag[Service#Generic[RequestContext, StatusException]]
+  ): ZLayer[Baggage with Tracing with R, Nothing, Service#Generic[RequestContext, StatusException]] =
+    ZLayer.fromZIO {
+      for {
+        tracing    <- ZIO.service[Tracing]
+        baggage    <- ZIO.service[Baggage]
+        env        <- ZIO.service[R]
+        interpreter = new GrpcServerTracingInterpreter(grpcServerTracerAlgebra, tracing, baggage)
+        zTransform <- interpreter.interpretation
+      } yield f(env).transform(zTransform)
+    }
+
 }
