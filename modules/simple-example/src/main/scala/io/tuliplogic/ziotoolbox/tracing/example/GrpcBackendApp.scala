@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, StatusResponse, ZioStatusApi}
-import io.tuliplogic.ziotoolbox.tracing.grpc.client.ClientTracing
+import io.tuliplogic.ziotoolbox.tracing.grpc.client.GrpcClientTracing
 import io.tuliplogic.ziotoolbox.tracing.grpc.server.GrpcServerTracingInterpreter
 import io.grpc.{ServerBuilder, StatusException}
 import scalapb.zio_grpc.{RequestContext, Server, ServerLayer, ServiceList, ZTransform}
@@ -69,6 +69,6 @@ object GrpcClient {
     ZioStatusApi.GetStatusApiClient.getStatus(GetStatusRequest())
 
   val clientLayer: ZLayer[Tracing with Baggage, Throwable, ZioStatusApi.GetStatusApiClient]= ZLayer.scoped {
-    ClientTracing.serviceClient("localhost", GrpcBackendApp.serverPort)(ch => ZioStatusApi.GetStatusApiClient.scoped(ch))
+    GrpcClientTracing.serviceClient("localhost", GrpcBackendApp.serverPort)(ch => ZioStatusApi.GetStatusApiClient.scoped(ch))
   }
 }

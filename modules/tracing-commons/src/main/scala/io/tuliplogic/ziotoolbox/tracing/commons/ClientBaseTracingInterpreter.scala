@@ -9,7 +9,7 @@ import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
 import scala.collection.mutable
 
-trait ClientTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
+trait ClientBaseTracingInterpreter[Req, Res, Transport, Interpretation] {
   def tracing: Tracing
   def baggage: Baggage
   def tracerAlgebra: TracerAlgebra[Req, Res]

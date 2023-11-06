@@ -1,6 +1,6 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
-import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpZioBackend
+import io.tuliplogic.ziotoolbox.tracing.sttp.client.{TracingSttpBackend, SttpClientTracingInterpreter}
 import sttp.client3.{DelegateSttpBackend, UriContext}
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
@@ -8,7 +8,7 @@ import zio.http.{HttpApp, Server}
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.{Scope, Task, ULayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
-import io.tuliplogic.ziotoolbox.tracing.sttp.server.{TapirTracingInterpretation, TapirServerTracingInterpreter}
+import io.tuliplogic.ziotoolbox.tracing.sttp.server.{TapirServerTracingInterpreter, TapirTracingInterpretation}
 import sttp.capabilities
 import sttp.capabilities.zio.ZioStreams
 import zio.telemetry.opentelemetry.context.ContextStorage
@@ -67,8 +67,8 @@ object HttpBackendClient {
     )
     .apply(())
 
-  def tracingCall: ZIO[DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets], Throwable, Unit] = ZIO
-    .serviceWithZIO[DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets]](_.send(req))
+  def tracingCall: ZIO[TracingSttpBackend, Throwable, Unit] = ZIO
+    .serviceWithZIO[TracingSttpBackend](_.send(req))
     .unit
 }
 

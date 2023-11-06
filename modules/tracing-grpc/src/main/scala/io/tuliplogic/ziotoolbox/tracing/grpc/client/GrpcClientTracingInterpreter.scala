@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.grpc.client
 
 import io.grpc.{ManagedChannelBuilder, Metadata}
-import io.tuliplogic.ziotoolbox.tracing.commons.{TracerAlgebra, ClientTracerBaseInterpreter}
+import io.tuliplogic.ziotoolbox.tracing.commons.{TracerAlgebra, ClientBaseTracingInterpreter}
 import scalapb.zio_grpc.{ZClientInterceptor, ZManagedChannel}
 import zio.{Scope, UIO, ZIO}
 import zio.telemetry.opentelemetry.baggage.Baggage
@@ -12,11 +12,11 @@ import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
 import scala.collection.mutable
 
-class ClientTracingInterpreter(
+class GrpcClientTracingInterpreter(
                                 val tracerAlgebra: TracerAlgebra[Any, Any],
                                 val tracing: Tracing,
                                 val baggage: Baggage,
-) extends ClientTracerBaseInterpreter[Any, Any, Map[Metadata.Key[String], String], ZClientInterceptor] {
+) extends ClientBaseTracingInterpreter[Any, Any, Map[Metadata.Key[String], String], ZClientInterceptor] {
 
   override def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): Map[Metadata.Key[String], String] =
     carrier.kernel.map(kv => Metadata.Key.of(kv._1, Metadata.ASCII_STRING_MARSHALLER) -> kv._2).toMap
@@ -44,21 +44,16 @@ class ClientTracingInterpreter(
 
 }
 
-object ClientTracing {
+object GrpcClientTracing {
 
   val tracerDsl = TracerAlgebra.dsl[Any, Any]
 
   val defaultGrpcClientTracerAlgebra: TracerAlgebra[Any, Any] = {
     import tracerDsl._
-      withRequestAttributes(req =>
-        Map(
-          "grpc.method" -> "",
-        )
+      const(
+        Map()
       )
   }
-
-  def clientTracingInterceptor(tracing: Tracing, baggage: Baggage, tracerAlgebra: TracerAlgebra[Any, Any]): UIO[ZClientInterceptor] =
-    new ClientTracingInterpreter(tracerAlgebra, tracing, baggage).interpretation
 
   /** In a typical situation, generate the client this way
     * {{{
@@ -78,7 +73,7 @@ object ClientTracing {
     for {
       tracing <- ZIO.service[Tracing]
       baggage <- ZIO.service[Baggage]
-      tracingInterceptor <- clientTracingInterceptor(tracing, baggage, tracerAlgebra)
+      tracingInterceptor <- new GrpcClientTracingInterpreter(tracerAlgebra, tracing, baggage).interpretation
       channel = ZManagedChannel(
         builder = ManagedChannelBuilder
           .forAddress(host, port)

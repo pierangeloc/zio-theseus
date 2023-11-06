@@ -3,11 +3,11 @@ package io.tuliplogic.ziotoolbox.tracing.example
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
-import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpZioBackend
+import io.tuliplogic.ziotoolbox.tracing.sttp.client.{TracingSttpBackend, SttpClientTracingInterpreter}
 import sttp.capabilities
 import sttp.capabilities.zio.ZioStreams
-import sttp.client3.DelegateSttpBackend
-import sttp.client3.httpclient.zio.HttpClientZioBackend
+import sttp.client3.{DelegateSttpBackend, SttpBackend}
+import sttp.client3.httpclient.zio.{HttpClientZioBackend, SttpClient}
 import sttp.client3.logging.{LogLevel, LoggingBackend}
 import sttp.client3.logging.slf4j.Slf4jLogger
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
@@ -17,7 +17,7 @@ import zio.kafka.producer.Producer
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.context.ContextStorage
 import zio.telemetry.opentelemetry.tracing.Tracing
-import zio.{Scope, Task, ULayer, URLayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
+import zio.{Scope, Task, ULayer, URLayer, ZEnvironment, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
 object ProxyApp extends ZIOAppDefault {
 
@@ -25,7 +25,7 @@ object ProxyApp extends ZIOAppDefault {
 //    TracingInstruments.defaultBootstrap
   val port = 9003
 
-  def performProxyCalls(parallel: Boolean): ZIO[Producer with ProducerTracing.KafkaRecordTracer with Tracing with Baggage with DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets], Throwable, Unit] = if (parallel) {
+  def performProxyCalls(parallel: Boolean): ZIO[Producer with ProducerTracing.KafkaRecordTracer with Tracing with Baggage with TracingSttpBackend, Throwable, Unit] = if (parallel) {
     ZIO.logInfo("Running parallel calls") *>
     HttpBackendClient.tracingCall.timed.flatMap(o => ZIO.logInfo(s"http call - DONE - took ${o._1.toMillis} ms")) &>
       ZioStatusApi.GetStatusApiClient
@@ -48,7 +48,7 @@ object ProxyApp extends ZIOAppDefault {
     Server.Config.default.binding("localhost", port)
   )
 
-  val zioHttpApp: HttpApp[DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets] with Tracing with Baggage with Producer with KafkaRecordTracer, Throwable] =
+  val zioHttpApp: HttpApp[TracingSttpBackend with Tracing with Baggage with Producer with KafkaRecordTracer, Throwable] =
     ZioHttpInterpreter().toHttp(
       StatusEndpoints.proxyStatusesEndpoint.zServerLogic { qp =>
         val parallel = qp.get("parallel").contains("true")
@@ -64,22 +64,18 @@ object ProxyApp extends ZIOAppDefault {
       }
     )
 
-  val httpTracingLayer: ZLayer[Baggage with Tracing, Nothing, DelegateSttpBackend[Task, ZioStreams with capabilities.WebSockets]] = ZLayer.fromZIO {
-    for {
-      be <- HttpClientZioBackend().orDie
-      tracing <- ZIO.service[Tracing]
-      baggage <- ZIO.service[Baggage]
-      be <- TracingSttpZioBackend(
+  val httpTracingLayer: ZLayer[Baggage with Tracing, Nothing, TracingSttpBackend] =
+    ZLayer.makeSome[Baggage with Tracing, TracingSttpBackend](
+      HttpClientZioBackend.layer().orDie.map(be => ZEnvironment(
         LoggingBackend(
-          delegate = be,
-          logger = new Slf4jLogger("sttp.client3.logging",be.responseMonad),
+          delegate = be.get,
+          logger = new Slf4jLogger("sttp.client3.logging", be.get.responseMonad),
           logRequestHeaders = true,
           beforeRequestSendLogLevel = LogLevel.Info
-        ),
-
-        tracing, baggage)
-    } yield be
-  }
+        ))
+      ),
+      SttpClientTracingInterpreter.layer()
+    )
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
     ZIO.logInfo("Running PROXY app") *>
