@@ -56,7 +56,7 @@ object CallRecordRepository {
         url = "jdbc:postgresql://localhost:5411/opentelemetry",
         user = "opentelemetry",
         password = "opentelemetry",
-        maxConnections = 5
+        maxConnections = 10
       )
     ),
     //these should come from main, but we do this this way so we don't have to change too much stuff

@@ -13,7 +13,7 @@ import zio.telemetry.opentelemetry.context.IncomingContextCarrier
 import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 
-trait TapirTracingInterpretation { interpretation =>
+trait TapirTracingEndpoint { interpretation =>
   protected def zServerLogicTracing[
     R,
     SECURITY_INPUT,
@@ -71,7 +71,7 @@ trait TapirTracingInterpretation { interpretation =>
 
 }
 
-object TapirTracingInterpretation {
+object TapirTracingEndpoint {
 
   val tracerDsl = TracerAlgebra.dsl[Endpoint[_, _, _, _, _], Any]
 
@@ -87,7 +87,7 @@ object TapirTracingInterpretation {
 
   def layer(
     tracerAlgebra: TracerAlgebra[Endpoint[_, _, _, _, _], Any] = defaultTapirServerTracerAlgebra
-  ): ZLayer[Baggage with Tracing, Nothing, TapirTracingInterpretation] =
+  ): ZLayer[Baggage with Tracing, Nothing, TapirTracingEndpoint] =
     ZLayer.fromZIO {
       for {
         tracing        <- ZIO.service[Tracing]
@@ -103,7 +103,7 @@ class TapirServerTracingInterpreter(
   val tracerAlgebra: TracerAlgebra[Endpoint[_, _, _, _, _], Any],
   val tracing: Tracing,
   val baggage: Baggage
-) extends ServerTracerBaseInterpreter[Endpoint[_, _, _, _, _], Any, List[Header], TapirTracingInterpretation] {
+) extends ServerTracerBaseInterpreter[Endpoint[_, _, _, _, _], Any, List[Header], TapirTracingEndpoint] {
 
   override val spanKind: SpanKind = SpanKind.SERVER
 
@@ -125,8 +125,8 @@ class TapirServerTracingInterpreter(
       }
     )
 
-  override def interpretation: UIO[TapirTracingInterpretation] = ZIO.succeed(
-    new TapirTracingInterpretation { interpretation =>
+  override def interpretation: UIO[TapirTracingEndpoint] = ZIO.succeed(
+    new TapirTracingEndpoint {
       override def zServerLogicTracing[R, SECURITY_INPUT, INPUT, ERROR_OUTPUT, OUTPUT, C](
         e: Endpoint[SECURITY_INPUT, INPUT, ERROR_OUTPUT, OUTPUT, C]
       )(spanName: String)(logic: INPUT => ZIO[R, ERROR_OUTPUT, OUTPUT])(implicit
