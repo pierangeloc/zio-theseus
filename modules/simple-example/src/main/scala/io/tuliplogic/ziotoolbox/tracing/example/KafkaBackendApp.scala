@@ -30,7 +30,7 @@ object KafkaBackendApp extends ZIOAppDefault {
       .tap(r =>
         for {
           _ <- ZIO.logInfo(s"Consumed record ${r}, now saving record")
-          _ <- process(r.record) @@ KafkaConsumerTracer.aspects.kafkaTraced(r.record)
+          _ <- (process(r.record) @@ KafkaConsumerTracer.aspects.kafkaTraced(r.record)).forkDaemon
         } yield r
       )
       .map(_.offset)

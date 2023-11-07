@@ -1,17 +1,14 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
-import io.tuliplogic.ziotoolbox.tracing.sttp.client.{TracingSttpBackend, SttpClientTracingInterpreter}
-import sttp.client3.{DelegateSttpBackend, UriContext}
-import sttp.client3.httpclient.zio.HttpClientZioBackend
+import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpBackend
+import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirTracingEndpoint
+import sttp.client3.UriContext
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import zio.http.{HttpApp, Server}
 import zio.telemetry.opentelemetry.baggage.Baggage
-import zio.telemetry.opentelemetry.tracing.Tracing
-import zio.{Scope, Task, ULayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
-import io.tuliplogic.ziotoolbox.tracing.sttp.server.{TapirServerTracingInterpreter, TapirTracingInterpretation}
-import sttp.capabilities
-import sttp.capabilities.zio.ZioStreams
 import zio.telemetry.opentelemetry.context.ContextStorage
+import zio.telemetry.opentelemetry.tracing.Tracing
+import zio.{Scope, ULayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
 object HttpBackendApp extends ZIOAppDefault {
 
@@ -19,9 +16,9 @@ object HttpBackendApp extends ZIOAppDefault {
   //    TracingInstruments.defaultBootstrap
   val port = 9002
 
-  val zioHttpApp: ZIO[TapirTracingInterpretation, Nothing, HttpApp[CallRecordRepository, Throwable]] =
+  val zioHttpApp: ZIO[TapirTracingEndpoint, Nothing, HttpApp[CallRecordRepository, Throwable]] =
     for {
-      tapirTracingInterpretation <- ZIO.service[TapirTracingInterpretation]
+      tapirTracingInterpretation <- ZIO.service[TapirTracingEndpoint]
     } yield {
       import tapirTracingInterpretation._
       ZioHttpInterpreter().toHttp(
@@ -53,7 +50,7 @@ object HttpBackendApp extends ZIOAppDefault {
           Baggage.logAnnotated,
           ContextStorage.fiberRef,
           JaegerTracer.default("http-backend-app"),
-          TapirTracingInterpretation.layer()
+          TapirTracingEndpoint.layer()
         )
 }
 

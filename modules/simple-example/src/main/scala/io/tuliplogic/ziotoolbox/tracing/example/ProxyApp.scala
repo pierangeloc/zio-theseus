@@ -31,7 +31,7 @@ object ProxyApp extends ZIOAppDefault {
       ZioStatusApi.GetStatusApiClient
         .getStatus(GetStatusRequest())
         .provideLayer(GrpcClient.clientLayer) *> ZIO.logInfo("grpc call - DONE") &>
-        KafkaClient.produce *> ZIO.logInfo("kafka production - DONE")
+        KafkaClient.produce.repeatN(5) *> ZIO.logInfo("kafka production - DONE")
   }
   else {
     for {
