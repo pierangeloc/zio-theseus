@@ -1,5 +1,6 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
+import io.tuliplogic.ziotoolbox.tracing.commons.TracerAlgebra
 import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.KafkaConsumerTracer
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -19,15 +20,19 @@ object KafkaBackendApp extends ZIOAppDefault {
 //    TracingInstruments.defaultBootstrap
   def process(record: ConsumerRecord[Long, String]) =
     for {
+      baggage <- ZIO.service[Baggage]
+      baggageContent <- baggage.getAll
+      _ <- ZIO.logInfo(s"Baggage content: $baggageContent")
       repo <- ZIO.service[CallRecordRepository]
       now <- zio.Clock.instant
       _ <- repo.saveRecord(CallRecordRepository.CallRecord(now, s"Kafka consumer record ${now.toEpochMilli / 100}"))
+      _ <- ZIO.serviceWithZIO[Tracing](_.addEventWithAttributes("I sent a kafka record!", TracerAlgebra.makeAttributes(Map("userId" -> "123", "username" -> "Johnny"))))
     } yield ()
 
   val consumer: ZStream[Consumer with Baggage with Tracing with CallRecordRepository with KafkaConsumerTracer, Throwable, Nothing] =
     Consumer
       .plainStream(Subscription.topics("ziotelemetry"), Serde.long, Serde.string)
-      .tap(r =>
+      .mapZIO(r =>
         for {
           _ <- ZIO.logInfo(s"Consumed record ${r}, now saving record")
           _ <- (process(r.record) @@ KafkaConsumerTracer.aspects.kafkaTraced(r.record)).forkDaemon
@@ -55,7 +60,7 @@ object KafkaBackendApp extends ZIOAppDefault {
         Baggage.logAnnotated,
         ContextStorage.fiberRef,
         Tracing.live,
-        JaegerTracer.default("kafka-backend-app"),
+        OTELTracer.default("kafka-backend-app"),
         KafkaConsumerTracer.layer(KafkaConsumerTracer.defaultConsumerTracingAlgebra("kafka-consumer"))
       )
   }
@@ -93,7 +98,7 @@ object KafkaClient extends ZIOAppDefault {
       Tracing.live,
       Baggage.logAnnotated,
       ContextStorage.fiberRef,
-      JaegerTracer.default("kafka-backend-app"),
+      OTELTracer.default("kafka-backend-app"),
       KafkaRecordTracer.layer()
     )
 }

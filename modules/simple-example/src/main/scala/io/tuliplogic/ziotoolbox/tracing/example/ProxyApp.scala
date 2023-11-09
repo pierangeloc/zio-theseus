@@ -54,6 +54,9 @@ object ProxyApp extends ZIOAppDefault {
         val parallel = qp.get("parallel").contains("true")
         for {
           tracing <- ZIO.service[Tracing]
+          baggage <- ZIO.service[Baggage]
+          _ <- baggage.set("parallel-calls", parallel.toString)
+          _ <- baggage.set("user-name", "Jack")
           r <- tracing.span("proxy-call")(
             for {
               r <- performProxyCalls(parallel).orDie.timed
@@ -87,7 +90,7 @@ object ProxyApp extends ZIOAppDefault {
         Tracing.live,
         Baggage.logAnnotated,
         ContextStorage.fiberRef,
-        JaegerTracer.default("proxy-app"),
+        OTELTracer.default("proxy-app"),
         KafkaClient.producerLayer,
         KafkaRecordTracer.layer(),
 

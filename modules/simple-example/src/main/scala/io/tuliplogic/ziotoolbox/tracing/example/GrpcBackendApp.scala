@@ -52,7 +52,7 @@ object GrpcBackend2 extends ZIOAppDefault {
       Tracing.live,
       Baggage.logAnnotated,
       ContextStorage.fiberRef,
-      JaegerTracer.default("grpc-backend-app"),
+      OTELTracer.default("grpc-backend-app"),
     )
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {

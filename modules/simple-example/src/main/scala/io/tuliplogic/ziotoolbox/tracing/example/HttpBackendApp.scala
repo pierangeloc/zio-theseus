@@ -49,7 +49,7 @@ object HttpBackendApp extends ZIOAppDefault {
           Tracing.live,
           Baggage.logAnnotated,
           ContextStorage.fiberRef,
-          JaegerTracer.default("http-backend-app"),
+          OTELTracer.default("http-backend-app"),
           TapirTracingEndpoint.layer()
         )
 }

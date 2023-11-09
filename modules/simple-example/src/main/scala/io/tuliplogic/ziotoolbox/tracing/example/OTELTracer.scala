@@ -10,7 +10,7 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor
 import io.opentelemetry.semconv.resource.attributes.ResourceAttributes
 import zio._
 
-object JaegerTracer {
+object OTELTracer {
 
   def default(serviceName: String) = live("http://localhost:4317", serviceName)
 
