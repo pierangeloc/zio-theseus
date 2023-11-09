@@ -1,6 +1,6 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
-import io.tuliplogic.ziotoolbox.tracing.commons.TracerAlgebra
+import io.tuliplogic.ziotoolbox.tracing.commons.{TracerAlgebra, TracingUtils}
 import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.KafkaConsumerTracer
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -18,6 +18,8 @@ object KafkaBackendApp extends ZIOAppDefault {
 
 //  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
 //    TracingInstruments.defaultBootstrap
+
+
   def process(record: ConsumerRecord[Long, String]) =
     for {
       baggage <- ZIO.service[Baggage]
@@ -26,7 +28,7 @@ object KafkaBackendApp extends ZIOAppDefault {
       repo <- ZIO.service[CallRecordRepository]
       now <- zio.Clock.instant
       _ <- repo.saveRecord(CallRecordRepository.CallRecord(now, s"Kafka consumer record ${now.toEpochMilli / 100}"))
-      _ <- ZIO.serviceWithZIO[Tracing](_.addEventWithAttributes("I sent a kafka record!", TracerAlgebra.makeAttributes(Map("userId" -> "123", "username" -> "Johnny"))))
+      _ <- TracingUtils.createEventWithAttributes("sent event")
     } yield ()
 
   val consumer: ZStream[Consumer with Baggage with Tracing with CallRecordRepository with KafkaConsumerTracer, Throwable, Nothing] =

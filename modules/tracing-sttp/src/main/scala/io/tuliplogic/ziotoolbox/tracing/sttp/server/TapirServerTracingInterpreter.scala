@@ -1,17 +1,16 @@
 package io.tuliplogic.ziotoolbox.tracing.sttp.server
 
-import cats.implicits.catsSyntaxEq
 import io.opentelemetry.api.trace.SpanKind
-import io.tuliplogic.ziotoolbox.tracing.commons.{TracerAlgebra, ServerTracerBaseInterpreter}
+import io.opentelemetry.semconv.SemanticAttributes
+import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
 import sttp.model.Header
 import sttp.tapir.Endpoint
+import sttp.tapir.model.ServerRequest
 import sttp.tapir.ztapir._
-import zio.{IO, UIO, ZIO, ZLayer}
 import zio.telemetry.opentelemetry.baggage.Baggage
-import zio.telemetry.opentelemetry.baggage.propagation.BaggagePropagator
 import zio.telemetry.opentelemetry.context.IncomingContextCarrier
 import zio.telemetry.opentelemetry.tracing.Tracing
-import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
+import zio.{UIO, ZIO, ZLayer}
 
 trait TapirTracingEndpoint { interpretation =>
   protected def zServerLogicTracing[
@@ -73,20 +72,25 @@ trait TapirTracingEndpoint { interpretation =>
 
 object TapirTracingEndpoint {
 
-  val tracerDsl = TracerAlgebra.dsl[Endpoint[_, _, _, _, _], Any]
+  val tracerDsl = TracerAlgebra.dsl[ServerRequest, Any]
 
-  val defaultTapirServerTracerAlgebra: TracerAlgebra[Endpoint[_, _, _, _, _], Any] = {
+  val defaultTapirServerTracerAlgebra: TracerAlgebra[ServerRequest, Any] = {
     import tracerDsl._
-    withRequestAttributes(endpoint =>
+    spanName(serverRequest => serverRequest.showShort) &
+    withRequestAttributes(req =>
       Map(
-        "http.method" -> endpoint.method.map(_.toString()).getOrElse(""),
-        "http.path"   -> endpoint.showPathTemplate()
+        SemanticAttributes.HTTP_REQUEST_METHOD.getKey -> req.method.method,
+        SemanticAttributes.URL_FULL.getKey -> req.uri.toString(),
+        SemanticAttributes.URL_PATH.getKey -> req.uri.path.mkString("/"),
+        SemanticAttributes.SERVER_ADDRESS.getKey -> req.uri.host.getOrElse("unknown"),
+        SemanticAttributes.SERVER_PORT.getKey -> req.uri.port.map(_.toString).getOrElse("unknown"),
+        SemanticAttributes.HTTP_ROUTE.getKey -> req.uri.path.mkString("/"),
       )
     )
   }
 
   def layer(
-    tracerAlgebra: TracerAlgebra[Endpoint[_, _, _, _, _], Any] = defaultTapirServerTracerAlgebra
+    tracerAlgebra: TracerAlgebra[ServerRequest, Any] = defaultTapirServerTracerAlgebra
   ): ZLayer[Baggage with Tracing, Nothing, TapirTracingEndpoint] =
     ZLayer.fromZIO {
       for {
@@ -100,10 +104,10 @@ object TapirTracingEndpoint {
 }
 
 class TapirServerTracingInterpreter(
-  val tracerAlgebra: TracerAlgebra[Endpoint[_, _, _, _, _], Any],
+  val tracerAlgebra: TracerAlgebra[ServerRequest, Any],
   val tracing: Tracing,
   val baggage: Baggage
-) extends ServerTracerBaseInterpreter[Endpoint[_, _, _, _, _], Any, List[Header], TapirTracingEndpoint] {
+) extends ServerTracerBaseInterpreter[ServerRequest, Any, List[Header], TapirTracingEndpoint] {
 
   override val spanKind: SpanKind = SpanKind.SERVER
 
@@ -132,18 +136,9 @@ class TapirServerTracingInterpreter(
       )(spanName: String)(logic: INPUT => ZIO[R, ERROR_OUTPUT, OUTPUT])(implicit
         aIsUnit: SECURITY_INPUT =:= Unit
       ): sttp.tapir.ztapir.ZServerEndpoint[R, C] = {
-        val endpointWithRequestHeaders = e.in(sttp.tapir.headers)
-        endpointWithRequestHeaders.zServerLogic { case (in, headers) =>
-          for {
-            carrier <- transportToCarrier(headers)
-            _ <- baggage.extract(baggagePropagator, carrier)
-            res <- tracing.extractSpan(
-                     tracingPropagator,
-                     carrier,
-                     spanName,
-                     spanKind = SpanKind.SERVER
-                   )(logic(in))
-          } yield res
+        val endpointWithRequest = e.in(sttp.tapir.extractFromRequest(identity))
+        endpointWithRequest.zServerLogic { case (in, serverRequest) =>
+          spanOnRequest[R, ERROR_OUTPUT, OUTPUT](serverRequest, serverRequest.headers.toList)(tracerAlgebra.spanName(serverRequest))(logic(in))
         }
       }
 
@@ -152,21 +147,12 @@ class TapirServerTracingInterpreter(
       )(
         spanName: String
       )(logic: PRINCIPAL => INPUT => ZIO[R, ERROR_OUTPUT, OUTPUT]): sttp.tapir.ztapir.ZServerEndpoint[R, C] = {
-        val endpointWithRequestHeaders = e.in(sttp.tapir.headers)
-        endpointWithRequestHeaders.serverLogic[R] { principal =>
-          { case (in, headers) =>
-            for {
-              carrier <- transportToCarrier(headers)
-              _ <- ZIO.logInfo(s"extracting from carrier with keys ${carrier.kernel}")
-              _ <- baggage.extract(BaggagePropagator.default, carrier)
-              res <- tracing
-                       .extractSpan(
-                         TraceContextPropagator.default,
-                         carrier,
-                         spanName,
-                         spanKind = SpanKind.SERVER
-                       )(logic(principal)(in))
-            } yield res
+        val endpointWithRequest = e.in(sttp.tapir.extractFromRequest(identity))
+        endpointWithRequest.serverLogic[R] { principal =>
+          { case (in, serverRequest) =>
+            spanOnRequest[R, ERROR_OUTPUT, OUTPUT](serverRequest, serverRequest.headers.toList)(tracerAlgebra.spanName(serverRequest))(
+              logic(principal)(in)
+            )
           }
         }
 

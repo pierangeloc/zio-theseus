@@ -57,6 +57,7 @@ object Dependencies {
   val zioTestSbt = "dev.zio" %% "zio-test-sbt" % "2.0.18" % Test
 
   val otelSdk = "io.opentelemetry" % "opentelemetry-sdk" % "1.29.0"
+  val otelSemconv = "io.opentelemetry.semconv" % "opentelemetry-semconv" % "1.21.0-alpha"
 
   val otelJdbc = "io.opentelemetry.instrumentation" % "opentelemetry-jdbc" % "1.31.0-alpha"
   val otelGrpc = "io.opentelemetry.instrumentation" % "opentelemetry-grpc-1.6" % "1.31.0-alpha"

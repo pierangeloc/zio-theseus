@@ -18,35 +18,32 @@ trait TracerAlgebra[Req, Res] {
 }
 
 object TracerAlgebra {
-  def makeAttributes(map: Map[String, String]): Attributes =
-    map.foldLeft(Attributes.builder())((builder, kv) => builder.put(kv._1, kv._2))
-      .build()
 
-  case class Const[Req, Res](attrs: Map[String, String]) extends TracerAlgebra[Req, Res] {
+  private case class Const[Req, Res](attrs: Map[String, String]) extends TracerAlgebra[Req, Res] {
     override def spanName(request: Req): String = ""
     override def requestAttributes(req: Req): Map[String, String] = attrs
     override def responseAttributes(res: Res): Map[String, String] = attrs
   }
 
-  case class Composed[Req, Res](before: TracerAlgebra[Req, Res], after: TracerAlgebra[Req, Res]) extends TracerAlgebra[Req, Res] {
-    override def requestAttributes(req: Req): Map[String, String] = before.requestAttributes(req)
-    override def responseAttributes(res: Res): Map[String, String] = after.responseAttributes(res)
-    override def spanName(request: Req): String = after.spanName(request)
+  private case class Composed[Req, Res](first: TracerAlgebra[Req, Res], second: TracerAlgebra[Req, Res]) extends TracerAlgebra[Req, Res] {
+    override def requestAttributes(req: Req): Map[String, String] = first.requestAttributes(req) ++ second.requestAttributes(req)
+    override def responseAttributes(res: Res): Map[String, String] = first.responseAttributes(res) ++ second.responseAttributes(res)
+    override def spanName(request: Req): String = List(first.spanName(request), second.spanName(request)).find(_.nonEmpty).getOrElse("")
   }
 
-  case class SpanName[Req, Res](extractSpanName: Req => String) extends TracerAlgebra[Req, Res] {
+  private case class SpanName[Req, Res](extractSpanName: Req => String) extends TracerAlgebra[Req, Res] {
     override def requestAttributes(req: Req): Map[String, String] = Map.empty
     override def responseAttributes(res: Res): Map[String, String] = Map.empty
     override def spanName(request: Req): String = extractSpanName(request)
   }
 
-  case class WithRequestAttributes[Req, Res](extractRequestAttributes: Req => Map[String, String]) extends TracerAlgebra[Req, Res] {
+  private case class WithRequestAttributes[Req, Res](extractRequestAttributes: Req => Map[String, String]) extends TracerAlgebra[Req, Res] {
     override def requestAttributes(req: Req): Map[String, String] = extractRequestAttributes(req)
     override def responseAttributes(res: Res): Map[String, String] = Map.empty
     override def spanName(request: Req): String = ""
   }
 
-  case class WithResponseAttributes[Req, Res](extractResponseAttributes: Res => Map[String, String]) extends TracerAlgebra[Req, Res] {
+  private case class WithResponseAttributes[Req, Res](extractResponseAttributes: Res => Map[String, String]) extends TracerAlgebra[Req, Res] {
     override def requestAttributes(req: Req): Map[String, String] = Map.empty
     override def responseAttributes(res: Res): Map[String, String] = extractResponseAttributes(res)
     override def spanName(request: Req): String = ""

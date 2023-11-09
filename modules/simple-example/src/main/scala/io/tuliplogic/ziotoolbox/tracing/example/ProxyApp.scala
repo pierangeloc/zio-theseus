@@ -1,9 +1,11 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
+import io.opentelemetry.api.trace.SpanKind
+import io.tuliplogic.ziotoolbox.tracing.commons.TracingUtils
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
-import io.tuliplogic.ziotoolbox.tracing.sttp.client.{TracingSttpBackend, SttpClientTracingInterpreter}
+import io.tuliplogic.ziotoolbox.tracing.sttp.client.{SttpClientTracingInterpreter, TracingSttpBackend}
 import sttp.capabilities
 import sttp.capabilities.zio.ZioStreams
 import sttp.client3.{DelegateSttpBackend, SttpBackend}
@@ -57,7 +59,11 @@ object ProxyApp extends ZIOAppDefault {
           baggage <- ZIO.service[Baggage]
           _ <- baggage.set("parallel-calls", parallel.toString)
           _ <- baggage.set("user-name", "Jack")
-          r <- tracing.span("proxy-call")(
+          r <- tracing.span("Perform-all-calls", spanKind = SpanKind.INTERNAL, attributes = TracingUtils.makeAttributes(
+            "userId" -> "123",
+            "username" -> "Johnny",
+            "user-roles" -> "admin,superuser"
+          ))(
             for {
               r <- performProxyCalls(parallel).orDie.timed
               _ <- ZIO.logInfo(s"performed proxy calls, it took ${r._1.toMillis} ms")

@@ -26,7 +26,7 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
         carrier = carrier,
         spanName = spanName,
         spanKind = spanKind,
-        attributes = TracerAlgebra.makeAttributes(tracerAlgebra.requestAttributes(req)),
+        attributes = TracingUtils.makeAttributes(tracerAlgebra.requestAttributes(req).toList: _*),
         statusMapper,
         links
       )(effect)

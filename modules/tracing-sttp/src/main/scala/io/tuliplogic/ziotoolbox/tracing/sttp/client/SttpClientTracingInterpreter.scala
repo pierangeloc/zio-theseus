@@ -2,6 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.sttp.client
 
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.{SpanKind, StatusCode}
+import io.opentelemetry.semconv.SemanticAttributes
 import io.tuliplogic.ziotoolbox.tracing.commons.{ClientBaseTracingInterpreter, TracerAlgebra}
 import sttp.capabilities.zio.ZioStreams
 import sttp.capabilities.{Effect, WebSockets}
@@ -31,7 +32,7 @@ class SttpClientTracingInterpreter(
     ZIO.succeed(
       new TracingSttpBackend(
         delegate,
-        tracerAlgebra.spanName(_),
+        request => tracerAlgebra.spanName(request),
         beforeSendingRequest,
         afterReceivingResponse,
         tracerAlgebra.requestAttributes(_).foldLeft(Attributes.builder())((builder, kv) => builder.put(kv._1, kv._2)).build(),
@@ -58,8 +59,6 @@ class TracingSttpBackend(
                                                                            request: Request[T, R]
                                                                          ): Task[Response[T]] = {
     for {
-      _ <- ZIO.logInfo(s"TRACING_TROUBLESHOOTING: about to send request ${request.showBasic}")
-      outgoingCarrier <- beforeSendingRequest(request)
       res <- tracing.span(
         spanName = spanName(request),
         spanKind = SpanKind.CLIENT,
@@ -67,6 +66,7 @@ class TracingSttpBackend(
         attributes = attributes(request),
       )(
         for {
+          outgoingCarrier <- beforeSendingRequest(request)
           res <- delegate.send(request.headers(carrierToTransport(outgoingCarrier): _*))
           _ <- afterReceivingResponse(res)
         } yield res
@@ -89,15 +89,21 @@ object SttpClientTracingInterpreter {
 
   val defaultSttpClientTracerAlgebra: TracerAlgebra[Request[_, _], Response[_]] = {
     import tracerDsl._
-    spanName(req => s"HTTP ${req.showBasic}") &
+    def showShort(req: Request[_, _]) = s"${req.method} ${req.uri.copy(scheme = None, authority = None, fragmentSegment = None).toString}"
+
+    spanName(req => s"HTTP ${showShort(req)}") &
       withRequestAttributes(req =>
         Map(
-          "http.method" -> req.method.method,
-          "http.url" -> req.uri.toString(),
+          SemanticAttributes.HTTP_REQUEST_METHOD.getKey -> req.method.method,
+          SemanticAttributes.URL_FULL.getKey -> req.uri.toString(),
+          SemanticAttributes.URL_PATH.getKey -> req.uri.path.mkString("/"),
+          SemanticAttributes.SERVER_ADDRESS.getKey -> req.uri.host.getOrElse("unknown"),
+          SemanticAttributes.SERVER_PORT.getKey -> req.uri.port.map(_.toString).getOrElse("unknown"),
+          SemanticAttributes.HTTP_ROUTE.getKey -> req.uri.path.mkString("/")
         )
       ) & withResponseAttributes(res =>
       Map(
-        "http.status_code" -> res.code.code.toString
+        SemanticAttributes.HTTP_RESPONSE_STATUS_CODE.getKey -> res.code.code.toString
       )
     )
   }
