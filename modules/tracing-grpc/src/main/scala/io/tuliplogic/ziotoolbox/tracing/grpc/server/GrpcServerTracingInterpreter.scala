@@ -105,8 +105,8 @@ object GrpcServerTracingInterpreter {
     import tracerDsl._
     withRequestAttributes(reqCtx =>
       Map(
-        SemanticAttributes.RPC_SYSTEM.getKey  -> "grpc-application",
-        SemanticAttributes.RPC_METHOD.getKey  -> reqCtx.methodDescriptor.getFullMethodName,
+        SemanticAttributes.RPC_SYSTEM.getKey  -> "grpc-backend-app", //TODO make dynamic
+        SemanticAttributes.RPC_METHOD.getKey  -> reqCtx.methodDescriptor.getBareMethodName,
         SemanticAttributes.RPC_SERVICE.getKey -> reqCtx.methodDescriptor.getServiceName
       )
     )
