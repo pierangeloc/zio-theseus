@@ -51,6 +51,7 @@ object Dependencies {
   val zioTelemetry = "dev.zio" %% "zio-opentelemetry" % "3.0.0-RC17"
   val zioInteropCats = "dev.zio" %% "zio-interop-cats" % "23.1.0.0"
   val zioLogging = "dev.zio" %% "zio-logging" % "2.1.14"
+  val zioLoggingSlf4j = "dev.zio" %% "zio-logging-slf4j" % "2.1.14"
   val zioGrpc = "com.thesamet.scalapb.zio-grpc" %% "zio-grpc-core" % "0.6.0"
 
   val zioTest = "dev.zio" %% "zio-test" % "2.0.18" % Test

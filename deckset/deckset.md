@@ -4,30 +4,16 @@ build-lists: true
 list: alignment(left)
 theme: Fira, 3
 
-# Trace your application wth ZIO-Telemetry
+# Application Tracing wth ZIO-Telemetry
 
 
-## A ray tracing exercise
+#### Or why use AOP when you have HOF?
 
 <br/>
 <br/>
 <br/>
 
-![right fit](img/title.png)
-
----
-^A couple of words about myself
-#### About me
-
-### Pierangelo Cecchetto
-
-### Scala Consultant - Amsterdam
-
-[.text: alignment(left)]
-
-![inline 10%](img/Twitter_Logo_WhiteOnBlue.png) @pierangelocecc
-
-![inline 40%](img/GitHub-Mark-Light-120px-plus.png) https://github.com/pierangeloc
+[//]: # (![right fit]&#40;img/title.png&#41;)
 
 ---
 ^In this talk we'll talk about ZIO environment, and how to use it to described a layered set of computations where each type of computatoni is delegated to a specific component
@@ -38,67 +24,32 @@ theme: Fira, 3
 ![left fit](img/sphere-red-grey.png)
 
 [.text: alignment(left)]
-### This talk
-- **Will cover**
- - ZIO environment
- - Layered computations
- - Testing
- - How ray tracing works
+### Agenda
+ - Observability
+ - Tracing
+ - Tools for Tracing
+ - ZIO-OpenTelemetry
+ - Examples/Demo
 
-- **Will not cover**
-- Errors, Concurrency, fibers, cancellation, runtime
-
----
-^The agenda for the talk:
-* We'll cover the bare minimum knowledge of zio to understand the meaning of the environment
-* Build quickly the foundations to manage rays
-* Build the components to build a ray tracer
-* Test these components
-* Wire things together
-* Make pictures nicer
-# Agenda
-
-1. ZIO-101: the bare minimum
-1. Build foundations
-1. Build Ray Tracer components
-1. Test Ray tracer components
-1. Wiring things together
-1. Improving rendering
-1. Show pattern at work
 
 
 ---
-# ZIO - 101
+# Observability
 
-^ZIO belongs together with other projects, to the set of Functional Effects libraries. This means that computations are just values instead of statements, that can be manipulated and combined, and then interpreted separetely
-Let's write a simple program, and show how we can compose small programs into bigger programs. Notice that we are not building programs as "running things", we are building programs as data structures, and what I have after I have built these programs are just data structures, it's like having built a tree. The next step is to interpret the data structure, and that's the place where all impure stuff happens, where the console gets actually printed
-#### Program as values
+^1. Find out quickly why an issue occurs and where the problem sits
+^2. When an issue occurs, react quickly and keep service healthy and functioning
 
-[.code-highlight: 1]
-[.code-highlight: 1-2]
-[.code-highlight: 1-4]
-[.code-highlight: 1-5]
-[.code-highlight: 1-7]
-[.code-highlight: 1-8]
-[.code-highlight: 1-10]
-```scala
-val salutation = console.putStr("Zdravo, ")
-val city = console.putStrLn("Ljubljana!!!")
-
-val prg = salutation *> city
-salutation.flatMap(_ => city)
-
-// nothing happens!
-runtime.unsafeRun(prg)
-
-//>  Zdravo, Ljubljana!!!
-```
+1. Root Cause Analysis
+2. Early error detection and reaction
+3. DX: Adaptability, Extensibility, Maintainability
+4. TODO: ADD image about a microservices architecture with traces
 
 ---
-# ZIO - 101
+# OpenTelemetry
 
-^If we look at our simple program, we see that the type has 3 parameters, the environment, the error channel and the output channel
-ZIO is parameterized in 3 types, the environment, the error channel and the output channel. As a mental model, think of it as a ... which can be further simplified as ... One important thing is that it is contravariant in the environment, and covariant on the E,A
+- Traces
+- Metrics
+- Logs
 
 [.code-highlight: 1]
 [.code-highlight: 2-4]

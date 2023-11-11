@@ -1,13 +1,13 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
+import io.grpc.{ServerBuilder, StatusException}
+import io.tuliplogic.ziotoolbox.tracing.commons.Bootstrap
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, StatusResponse, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.grpc.client.GrpcClientTracing
 import io.tuliplogic.ziotoolbox.tracing.grpc.server.GrpcServerTracingInterpreter
-import io.grpc.{ServerBuilder, StatusException}
-import scalapb.zio_grpc.{RequestContext, Server, ServerLayer, ServiceList, ZTransform}
+import scalapb.zio_grpc.{RequestContext, Server, ServerLayer, ServiceList}
 import zio._
 import zio.telemetry.opentelemetry.baggage.Baggage
-import zio.telemetry.opentelemetry.context.ContextStorage
 import zio.telemetry.opentelemetry.tracing.Tracing
 
 object GrpcBackendApp {
@@ -15,9 +15,8 @@ object GrpcBackendApp {
 }
 
 object GrpcBackend2 extends ZIOAppDefault {
-  //TODO: fix logs
-//  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
-//    TracingInstruments.defaultBootstrap
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
+    Bootstrap.defaultBootstrap
 
   class GetStatusApiImpl(repo: CallRecordRepository) extends ZioStatusApi.GetStatusApi {
 
@@ -49,9 +48,10 @@ object GrpcBackend2 extends ZIOAppDefault {
       serverLive(port),
       serviceLayer,
       CallRecordRepository.workingRepoLayer,
-      Tracing.live,
-      Baggage.logAnnotated,
-      ContextStorage.fiberRef,
+//      Tracing.live,
+//      Baggage.logAnnotated,
+//      ContextStorage.fiberRef,
+      Bootstrap.tracingLayer,
       OTELTracer.default("grpc-backend-app"),
     )
 

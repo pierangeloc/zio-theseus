@@ -1,24 +1,22 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
-import io.tuliplogic.ziotoolbox.tracing.commons.{TracerAlgebra, TracingUtils}
+import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, TracingUtils}
 import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.KafkaConsumerTracer
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
+import zio._
 import zio.kafka.consumer.{Consumer, ConsumerSettings, Subscription}
 import zio.kafka.producer.{Producer, ProducerSettings}
 import zio.kafka.serde.Serde
 import zio.stream.ZStream
 import zio.telemetry.opentelemetry.baggage.Baggage
-import zio.telemetry.opentelemetry.context.ContextStorage
 import zio.telemetry.opentelemetry.tracing.Tracing
-import zio._
 
 object KafkaBackendApp extends ZIOAppDefault {
 
-//  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
-//    TracingInstruments.defaultBootstrap
-
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
+    Bootstrap.defaultBootstrap
 
   def process(record: ConsumerRecord[Long, String]) =
     for {
@@ -59,9 +57,10 @@ object KafkaBackendApp extends ZIOAppDefault {
       .provide(
         consumerLayer,
         CallRecordRepository.workingRepoLayer,
-        Baggage.logAnnotated,
-        ContextStorage.fiberRef,
-        Tracing.live,
+//        Baggage.logAnnotated,
+//        ContextStorage.fiberRef,
+//        Tracing.live,
+        Bootstrap.tracingLayer,
         OTELTracer.default("kafka-backend-app"),
         KafkaConsumerTracer.layer(KafkaConsumerTracer.defaultConsumerTracingAlgebra("kafka-consumer"))
       )
@@ -97,9 +96,10 @@ object KafkaClient extends ZIOAppDefault {
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     produce.provide(
       producerLayer,
-      Tracing.live,
-      Baggage.logAnnotated,
-      ContextStorage.fiberRef,
+//      Tracing.live,
+//      Baggage.logAnnotated,
+//      ContextStorage.fiberRef,
+      Bootstrap.tracingLayer,
       OTELTracer.default("kafka-backend-app"),
       KafkaRecordTracer.layer()
     )

@@ -1,0 +1,27 @@
+POST http://localhost:3100/loki/api/v1/push
+Content-Type: application/json
+
+{
+  "streams": [
+    {
+      "stream": {
+        "foo": "bar2"
+      },
+      "values": [
+        [
+          "169969851400000000",
+          "fizzbuzz"
+        ]
+      ]
+    }
+  ]
+}
+
+###
+
+GET http://localhost:3100/loki/api/v1/query_range?query={app=~".+"}&start=1699698511000000000&end=1699698512000000000&limit=1000
+
+
+###
+
+GET http://localhost:3100/loki/api/v1/tail

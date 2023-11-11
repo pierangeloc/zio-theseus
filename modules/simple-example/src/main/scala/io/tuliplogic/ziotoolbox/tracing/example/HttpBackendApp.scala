@@ -1,19 +1,17 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
+import io.tuliplogic.ziotoolbox.tracing.commons.Bootstrap
 import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpBackend
 import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirTracingEndpoint
 import sttp.client3.UriContext
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import zio.http.{HttpApp, Server}
-import zio.telemetry.opentelemetry.baggage.Baggage
-import zio.telemetry.opentelemetry.context.ContextStorage
-import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.{Scope, ULayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
 object HttpBackendApp extends ZIOAppDefault {
 
-  //  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
-  //    TracingInstruments.defaultBootstrap
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
+    Bootstrap.defaultBootstrap
   val port = 9002
 
   val zioHttpApp: ZIO[TapirTracingEndpoint, Nothing, HttpApp[CallRecordRepository, Throwable]] =
@@ -46,9 +44,10 @@ object HttpBackendApp extends ZIOAppDefault {
           Server.live,
           serverConfig,
           CallRecordRepository.workingRepoLayer.orDie,
-          Tracing.live,
-          Baggage.logAnnotated,
-          ContextStorage.fiberRef,
+//          Tracing.live,
+//          Baggage.logAnnotated,
+//          ContextStorage.fiberRef,
+          Bootstrap.tracingLayer,
           OTELTracer.default("http-backend-app"),
           TapirTracingEndpoint.layer()
         )

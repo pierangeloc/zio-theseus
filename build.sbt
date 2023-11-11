@@ -23,7 +23,7 @@ lazy val `tracing-commons` =
     .in(file("modules/tracing-commons"))
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= Seq(zio, zioTelemetry, otelSemconv)
+      libraryDependencies ++= Seq(zio, zioTelemetry, otelSemconv, zioLogging, zioLoggingSlf4j)
     )
 
 lazy val doobie =
@@ -93,9 +93,6 @@ lazy val `simple-example` = project
 
       "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.29.0",
       "io.opentelemetry" % "opentelemetry-sdk" % "1.29.0",
-      "io.zipkin.reporter2" % "zipkin-reporter" % "2.16.3",
-      "io.zipkin.reporter2" % "zipkin-sender-okhttp3" % "2.16.3",
-
       "dev.zio" %% "zio-logging-slf4j" % "2.1.13",
       "org.slf4j" % "jul-to-slf4j" % "1.7.36",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
@@ -104,6 +101,7 @@ lazy val `simple-example` = project
       "org.codehaus.janino" % "janino" % "3.1.7",
       "org.tpolecat" %% "doobie-postgres" % doobieVersion,
       "com.softwaremill.sttp.client3" %% "slf4j-backend" % "3.8.15",
+      "com.github.loki4j" % "loki-logback-appender" % "1.4.2",
     ),
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",

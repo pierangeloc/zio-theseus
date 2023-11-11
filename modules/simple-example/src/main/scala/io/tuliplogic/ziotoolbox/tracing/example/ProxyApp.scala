@@ -1,39 +1,38 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.opentelemetry.api.trace.SpanKind
-import io.tuliplogic.ziotoolbox.tracing.commons.TracingUtils
+import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, TracingUtils}
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import io.tuliplogic.ziotoolbox.tracing.sttp.client.{SttpClientTracingInterpreter, TracingSttpBackend}
-import sttp.capabilities
-import sttp.capabilities.zio.ZioStreams
-import sttp.client3.{DelegateSttpBackend, SttpBackend}
-import sttp.client3.httpclient.zio.{HttpClientZioBackend, SttpClient}
-import sttp.client3.logging.{LogLevel, LoggingBackend}
+import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.logging.slf4j.Slf4jLogger
+import sttp.client3.logging.{LogLevel, LoggingBackend}
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.ztapir._
 import zio.http.{HttpApp, Server}
 import zio.kafka.producer.Producer
 import zio.telemetry.opentelemetry.baggage.Baggage
-import zio.telemetry.opentelemetry.context.ContextStorage
 import zio.telemetry.opentelemetry.tracing.Tracing
-import zio.{Scope, Task, ULayer, URLayer, ZEnvironment, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
+import zio.{Scope, ULayer, ZEnvironment, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
 object ProxyApp extends ZIOAppDefault {
 
-//  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
-//    TracingInstruments.defaultBootstrap
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
+    Bootstrap.defaultBootstrap
+
   val port = 9003
 
   def performProxyCalls(parallel: Boolean): ZIO[Producer with ProducerTracing.KafkaRecordTracer with Tracing with Baggage with TracingSttpBackend, Throwable, Unit] = if (parallel) {
     ZIO.logInfo("Running parallel calls") *>
-    HttpBackendClient.tracingCall.timed.flatMap(o => ZIO.logInfo(s"http call - DONE - took ${o._1.toMillis} ms")) &>
-      ZioStatusApi.GetStatusApiClient
+      ZIO.logAnnotate("parallel-calls", "true")(
+        HttpBackendClient.tracingCall.timed.flatMap(o => ZIO.logInfo(s"http call - DONE - took ${o._1.toMillis} ms")) &>
+        ZioStatusApi.GetStatusApiClient
         .getStatus(GetStatusRequest())
         .provideLayer(GrpcClient.clientLayer) *> ZIO.logInfo("grpc call - DONE") &>
         KafkaClient.produce.repeatN(5) *> ZIO.logInfo("kafka production - DONE")
+      )
   }
   else {
     for {
@@ -93,13 +92,13 @@ object ProxyApp extends ZIOAppDefault {
         Server.live,
         serverConfig,
         httpTracingLayer,
-        Tracing.live,
-        Baggage.logAnnotated,
-        ContextStorage.fiberRef,
+//        Tracing.live,
+//        Baggage.logAnnotated,
+//        ContextStorage.fiberRef,
+        Bootstrap.tracingLayer,
         OTELTracer.default("proxy-app"),
         KafkaClient.producerLayer,
         KafkaRecordTracer.layer(),
-
       )
   }
 }
