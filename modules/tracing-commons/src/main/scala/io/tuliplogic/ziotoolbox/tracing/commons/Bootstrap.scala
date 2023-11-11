@@ -36,6 +36,7 @@ object Bootstrap {
       fr.locallyScoped(context)
   }
 
+  val s = "{\"timestamp\": \"2023-11-11T20:39:17.294163Z\", \"log\": \"{\\\"@timestamp\\\":\\\"2023-11-11T20:39:17.132Z\\\",\\\"level\\\":\\\"INFO\\\",\\\"service\\\":\\\"wateva\\\",\\\"traceId\\\":\\\"\\\",\\\"spanId\\\":\\\"\\\",\\\"parentSpanId\\\":\\\"\\\",\\\"pid\\\":\\\"\\\",\\\"thread\\\":\\\"zio-default-blocking-1\\\",\\\"class\\\":\\\"com.zaxxer.hikari.HikariDataSource\\\",\\\"message\\\":\\\"HikariPool-2 - Shutdown completed.\\\"}\"}"
   private def logFormatWithBaggageAndTracing: LogFormat =
     LogFormat.make { (builder, _, _, _ , _, _, fiberRefs, _, _) =>
       fiberRefs.get(contextFiberRef).foreach { context =>
