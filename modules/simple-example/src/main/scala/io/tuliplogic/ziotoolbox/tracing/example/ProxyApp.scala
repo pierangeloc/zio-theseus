@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.opentelemetry.api.trace.SpanKind
-import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, TracingUtils}
+import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer, TracingUtils}
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer

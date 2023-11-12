@@ -1,4 +1,4 @@
-package io.tuliplogic.ziotoolbox.tracing.example
+package io.tuliplogic.ziotoolbox.tracing.commons
 
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Tracer
@@ -6,7 +6,7 @@ import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
-import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor
+import io.opentelemetry.sdk.trace.`export`.SimpleSpanProcessor
 import io.opentelemetry.semconv.resource.attributes.ResourceAttributes
 import zio._
 

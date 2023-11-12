@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.grpc.{ServerBuilder, StatusException}
-import io.tuliplogic.ziotoolbox.tracing.commons.Bootstrap
+import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, StatusResponse, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.grpc.client.GrpcClientTracing
 import io.tuliplogic.ziotoolbox.tracing.grpc.server.GrpcServerTracingInterpreter

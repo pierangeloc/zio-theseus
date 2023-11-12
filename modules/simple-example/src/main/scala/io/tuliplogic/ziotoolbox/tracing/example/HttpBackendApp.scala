@@ -1,6 +1,6 @@
 package io.tuliplogic.ziotoolbox.tracing.example
 
-import io.tuliplogic.ziotoolbox.tracing.commons.Bootstrap
+import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
 import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpBackend
 import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirTracingEndpoint
 import sttp.client3.UriContext

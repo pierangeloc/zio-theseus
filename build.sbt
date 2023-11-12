@@ -23,7 +23,10 @@ lazy val `tracing-commons` =
     .in(file("modules/tracing-commons"))
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= Seq(zio, zioTelemetry, otelSemconv, zioLogging, zioLoggingSlf4j)
+      libraryDependencies ++= Seq(zio, zioTelemetry, otelSemconv, zioLogging, zioLoggingSlf4j,
+        "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.29.0",
+        "io.opentelemetry" % "opentelemetry-sdk" % "1.29.0",
+      )
     )
 
 lazy val doobie =

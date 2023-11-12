@@ -77,8 +77,6 @@ object Dependencies {
     "io.jaegertracing" % "jaeger-client" % "1.8.0",
     "io.jaegertracing" % "jaeger-zipkin" % "1.8.0",
 
-    "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.29.0",
-    "io.opentelemetry" % "opentelemetry-sdk" % "1.29.0",
     "dev.zio" %% "zio-logging-slf4j" % "2.1.13",
     "org.slf4j" % "jul-to-slf4j" % "1.7.36",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
