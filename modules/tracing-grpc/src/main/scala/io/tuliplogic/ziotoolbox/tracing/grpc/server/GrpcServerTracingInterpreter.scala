@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.grpc.server
 
 import io.grpc.{Metadata, Status, StatusException}
 import io.opentelemetry.api.trace.SpanKind
-import io.opentelemetry.semconv.SemanticAttributes
+import io.opentelemetry.semconv.{ResourceAttributes, SemanticAttributes}
 import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
 import scalapb.zio_grpc.{GeneratedService, RequestContext, ZTransform}
 import zio.{Tag, UIO, ZIO, ZLayer}
@@ -107,8 +107,10 @@ object GrpcServerTracingInterpreter {
       Map(
         SemanticAttributes.RPC_SYSTEM.getKey  -> "grpc-backend-app", //TODO make dynamic
         SemanticAttributes.RPC_METHOD.getKey  -> reqCtx.methodDescriptor.getBareMethodName,
-        SemanticAttributes.RPC_SERVICE.getKey -> reqCtx.methodDescriptor.getServiceName
-      )
+        SemanticAttributes.RPC_SERVICE.getKey -> reqCtx.methodDescriptor.getServiceName,
+        ResourceAttributes.OTEL_SCOPE_NAME.getKey -> "zio-grpc-server",
+
+    )
     )
   }
 

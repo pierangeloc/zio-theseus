@@ -1,7 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.sttp.server
 
 import io.opentelemetry.api.trace.SpanKind
-import io.opentelemetry.semconv.SemanticAttributes
+import io.opentelemetry.semconv.{ResourceAttributes, SemanticAttributes}
 import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
 import sttp.model.Header
 import sttp.tapir.Endpoint
@@ -85,6 +85,8 @@ object TapirTracingEndpoint {
         SemanticAttributes.SERVER_ADDRESS.getKey -> req.uri.host.getOrElse("unknown"),
         SemanticAttributes.SERVER_PORT.getKey -> req.uri.port.map(_.toString).getOrElse("unknown"),
         SemanticAttributes.HTTP_ROUTE.getKey -> req.uri.path.mkString("/"),
+        ResourceAttributes.OTEL_SCOPE_NAME.getKey -> "zio-http-server",
+
       )
     )
   }

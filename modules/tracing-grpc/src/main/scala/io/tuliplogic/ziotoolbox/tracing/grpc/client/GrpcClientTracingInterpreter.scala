@@ -3,6 +3,7 @@ package io.tuliplogic.ziotoolbox.tracing.grpc.client
 import io.grpc.ClientCall.Listener
 import io.grpc.{CallOptions, ManagedChannelBuilder, Metadata, MethodDescriptor, StatusException}
 import io.opentelemetry.api.trace.SpanKind
+import io.opentelemetry.semconv.ResourceAttributes
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes
 import io.tuliplogic.ziotoolbox.tracing.commons.{ClientBaseTracingInterpreter, TracerAlgebra}
 import scalapb.zio_grpc.client.ZClientCall
@@ -75,7 +76,9 @@ object GrpcClientTracing {
       withRequestAttributes(md =>
         Map(
           SemanticAttributes.RPC_METHOD.getKey  -> md.getBareMethodName,
-          SemanticAttributes.RPC_SERVICE.getKey -> md.getServiceName
+          SemanticAttributes.RPC_SERVICE.getKey -> md.getServiceName,
+          ResourceAttributes.OTEL_SCOPE_NAME.getKey -> "zio-grpc-client",
+
         )
       )
   }

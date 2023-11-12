@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.sttp.client
 
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.{SpanKind, StatusCode}
-import io.opentelemetry.semconv.SemanticAttributes
+import io.opentelemetry.semconv.{ResourceAttributes, SemanticAttributes}
 import io.tuliplogic.ziotoolbox.tracing.commons.{ClientBaseTracingInterpreter, TracerAlgebra}
 import sttp.capabilities.zio.ZioStreams
 import sttp.capabilities.{Effect, WebSockets}
@@ -99,7 +99,9 @@ object SttpClientTracingInterpreter {
           SemanticAttributes.URL_PATH.getKey -> req.uri.path.mkString("/"),
           SemanticAttributes.SERVER_ADDRESS.getKey -> req.uri.host.getOrElse("unknown"),
           SemanticAttributes.SERVER_PORT.getKey -> req.uri.port.map(_.toString).getOrElse("unknown"),
-          SemanticAttributes.HTTP_ROUTE.getKey -> req.uri.path.mkString("/")
+          SemanticAttributes.HTTP_ROUTE.getKey -> req.uri.path.mkString("/"),
+          ResourceAttributes.OTEL_SCOPE_NAME.getKey -> "zio-sttp-client",
+          "some.custom.attribute" -> "some.custom.value"
         )
       ) & withResponseAttributes(res =>
       Map(

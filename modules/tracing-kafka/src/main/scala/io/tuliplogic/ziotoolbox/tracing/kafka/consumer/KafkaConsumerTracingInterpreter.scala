@@ -1,6 +1,7 @@
 package io.tuliplogic.ziotoolbox.tracing.kafka.consumer
 
 import io.opentelemetry.api.trace.SpanKind
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes
 import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.{Header => KafkaHeader}
@@ -15,7 +16,6 @@ trait KafkaConsumerTracer {
   def spanProcessing[K, V, R, E, A](record: ConsumerRecord[K, V])(effect: ZIO[R, E, A]): ZIO[R, E, A]
 }
 
-
 //TODO: find a way to specify the span name not only through the algebra. Like I want different consumers to use different span names
 object KafkaConsumerTracer {
 
@@ -25,8 +25,9 @@ object KafkaConsumerTracer {
     import tracerDsl._
     withRequestAttributes(req =>
       Map(
-        "kafka.topic"     -> req.topic(),
-        "kafka.partition" -> req.partition().toString
+        SemanticAttributes.MESSAGING_SOURCE_NAME.getKey            -> req.topic(),
+        "kafka.topic"                                              -> req.topic(),
+        SemanticAttributes.MESSAGING_KAFKA_SOURCE_PARTITION.getKey -> req.partition().toString
       )
     ) & spanName(_ => consumerSpanName)
   }
@@ -41,15 +42,14 @@ object KafkaConsumerTracer {
       } yield tracer
     }
 
-
   object aspects {
     def kafkaTraced[K, V](
-                           record: ConsumerRecord[K, V]
-                         ): ZIOAspect[Nothing, KafkaConsumerTracer, Nothing, Any, Nothing, Any] =
+      record: ConsumerRecord[K, V]
+    ): ZIOAspect[Nothing, KafkaConsumerTracer, Nothing, Any, Nothing, Any] =
       new ZIOAspect[Nothing, KafkaConsumerTracer, Nothing, Any, Nothing, Any] {
         override def apply[R >: Nothing <: KafkaConsumerTracer, E >: Nothing <: Any, A >: Nothing <: Any](
-                                                                                                           zio: ZIO[R, E, A]
-                                                                                                         )(implicit trace: Trace): ZIO[R, E, A] =
+          zio: ZIO[R, E, A]
+        )(implicit trace: Trace): ZIO[R, E, A] =
           ZIO.serviceWithZIO[KafkaConsumerTracer](_.spanProcessing(record)(zio))
       }
   }

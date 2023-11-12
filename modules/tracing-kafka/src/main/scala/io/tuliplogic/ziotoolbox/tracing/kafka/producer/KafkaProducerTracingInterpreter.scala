@@ -1,6 +1,6 @@
 package io.tuliplogic.ziotoolbox.tracing.kafka.producer
 
-
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes
 import io.tuliplogic.ziotoolbox.tracing.commons.{ClientBaseTracingInterpreter, TracerAlgebra}
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -27,45 +27,50 @@ object ProducerTracing {
       import tracerDsl._
       withRequestAttributes(req =>
         Map(
-          "kafka.topic" -> req.topic(),
-          "kafka.partition" -> req.partition().toString,
+          "kafka.topic"                                                   -> req.topic(),
+          SemanticAttributes.MESSAGING_DESTINATION_NAME.getKey            -> req.topic(),
+          SemanticAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION.getKey -> req.partition().toString
         )
       )
     }
 
-    def layer(tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any] = defaultKafkaProducerTracerAlgebra): ZLayer[Baggage with Tracing, Nothing, KafkaRecordTracer] = {
+    def layer(
+      tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any] = defaultKafkaProducerTracerAlgebra
+    ): ZLayer[Baggage with Tracing, Nothing, KafkaRecordTracer] =
       ZLayer.fromZIO {
         for {
           tracing <- ZIO.service[Tracing]
           baggage <- ZIO.service[Baggage]
-          tracer <- new KafkaProducerTracingInterpreter(tracerAlgebra, tracing, baggage).interpretation
+          tracer  <- new KafkaProducerTracingInterpreter(tracerAlgebra, tracing, baggage).interpretation
         } yield tracer
       }
-    }
-
 
     def traced[K, V]: ZIOAspect[Nothing, KafkaRecordTracer, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] =
       new ZIOAspect[Nothing, KafkaRecordTracer, Nothing, Any, ProducerRecord[K, V], ProducerRecord[K, V]] {
-        override def apply[R >: Nothing <: KafkaRecordTracer, E >: Nothing <: Any, A >: ProducerRecord[K, V] <: ProducerRecord[K, V]](zio: ZIO[R, E, A])(implicit trace: Trace): ZIO[R, E, A] =
+        override def apply[R >: Nothing <: KafkaRecordTracer, E >: Nothing <: Any, A >: ProducerRecord[
+          K,
+          V
+        ] <: ProducerRecord[K, V]](zio: ZIO[R, E, A])(implicit trace: Trace): ZIO[R, E, A] =
           for {
-            tkp <- ZIO.service[KafkaRecordTracer]
+            tkp    <- ZIO.service[KafkaRecordTracer]
             record <- zio
-            tr <- tkp.tracedRecord(record)
+            tr     <- tkp.tracedRecord(record)
           } yield tr
       }
   }
 
-
 }
 
 private class KafkaProducerTracingInterpreter(
-                                        val tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any],
-                                        val tracing: Tracing,
-                                        val baggage: Baggage,
-                                      ) extends ClientBaseTracingInterpreter[ProducerRecord[_, _], Any, List[KafkaHeader], KafkaRecordTracer] {
-  override protected def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): List[KafkaHeader] =
-    carrier.kernel.toList.map {
-      case (k, v) => new RecordHeader(k, v.getBytes("UTF-8"))
+  val tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any],
+  val tracing: Tracing,
+  val baggage: Baggage
+) extends ClientBaseTracingInterpreter[ProducerRecord[_, _], Any, List[KafkaHeader], KafkaRecordTracer] {
+  override protected def carrierToTransport(
+    carrier: OutgoingContextCarrier[mutable.Map[String, String]]
+  ): List[KafkaHeader] =
+    carrier.kernel.toList.map { case (k, v) =>
+      new RecordHeader(k, v.getBytes("UTF-8"))
     }
 
   override def interpretation: UIO[KafkaRecordTracer] = ZIO.succeed(
@@ -73,9 +78,9 @@ private class KafkaProducerTracingInterpreter(
       override def tracedRecord[K, V](producerRecord: ProducerRecord[K, V]): UIO[ProducerRecord[K, V]] =
         for {
           outgoingCarrier <- beforeSendingRequest(producerRecord)
-          headers = carrierToTransport(outgoingCarrier)
-          existingHeders = producerRecord.headers()
-          allHeaders = headers ++ existingHeders.toArray.toList
+          headers          = carrierToTransport(outgoingCarrier)
+          existingHeders   = producerRecord.headers()
+          allHeaders       = headers ++ existingHeders.toArray.toList
         } yield new ProducerRecord[K, V](
           producerRecord.topic(),
           producerRecord.partition(),
