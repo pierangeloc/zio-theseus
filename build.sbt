@@ -77,38 +77,60 @@ lazy val `simple-example` = project
     scalacOptions ~= { current =>
       current.filterNot(v => v.equals("-Xfatal-warnings"))
     },
-    libraryDependencies ++= Seq(
-      zio,
-      "dev.zio"                       %% "zio-kafka"        % "2.4.2",
-      "io.grpc" % "grpc-netty" % "1.50.1",
-      "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion,
-      zioGrpc,
-      "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server" % tapirVersion,
-      "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion,
-      "dev.zio" %% "zio-kafka" % "2.4.2",
-
-      "io.jaegertracing" % "jaeger-core" % "1.8.0",
-      "io.jaegertracing" % "jaeger-client" % "1.8.0",
-      "io.jaegertracing" % "jaeger-zipkin" % "1.8.0",
-
-      "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.29.0",
-      "io.opentelemetry" % "opentelemetry-sdk" % "1.29.0",
-      "dev.zio" %% "zio-logging-slf4j" % "2.1.13",
-      "org.slf4j" % "jul-to-slf4j" % "1.7.36",
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
-      "ch.qos.logback" % "logback-classic" % "1.4.6",
-      "net.logstash.logback" % "logstash-logback-encoder" % "7.2",
-      "org.codehaus.janino" % "janino" % "3.1.7",
-      "org.tpolecat" %% "doobie-postgres" % doobieVersion,
-      "com.softwaremill.sttp.client3" %% "slf4j-backend" % "3.8.15",
-      "com.github.loki4j" % "loki-logback-appender" % "1.4.2",
-    ),
+    libraryDependencies ++= examplesDeps,
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",
       scalapb.zio_grpc.ZioCodeGenerator -> (Compile / sourceManaged).value / "scalapb",
     )
   )
   .dependsOn(`tracing-grpc`, `tracing-kafka`, `tracing-sttp`, `tracing-doobie`, doobie)
+
+lazy val `example-charging-service` = project
+  .in(file("modules/example/charging-service"))
+  .settings(commonSettings)
+  .settings(
+    scalacOptions ~= { current =>
+      current.filterNot(v => v.equals("-Xfatal-warnings"))
+    },
+    libraryDependencies ++= examplesDeps,
+    Compile / PB.targets := Seq(
+      scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",
+      scalapb.zio_grpc.ZioCodeGenerator -> (Compile / sourceManaged).value / "scalapb",
+    )
+  )
+  .dependsOn(`tracing-grpc`, `tracing-kafka`, `tracing-sttp`, `tracing-doobie`, doobie)
+
+lazy val `example-charging-hub` = project
+  .in(file("modules/example/charging-hub"))
+  .settings(commonSettings)
+  .settings(
+    scalacOptions ~= { current =>
+      current.filterNot(v => v.equals("-Xfatal-warnings"))
+    },
+    libraryDependencies ++= examplesDeps,
+    Compile / PB.targets := Seq(
+      scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",
+      scalapb.zio_grpc.ZioCodeGenerator -> (Compile / sourceManaged).value / "scalapb",
+    )
+  )
+  .dependsOn(`tracing-grpc`, `tracing-kafka`, `tracing-sttp`, `tracing-doobie`, doobie)
+
+lazy val `example-billing-service` = project
+  .in(file("modules/example/billing-service"))
+  .settings(commonSettings)
+  .settings(
+    scalacOptions ~= { current =>
+      current.filterNot(v => v.equals("-Xfatal-warnings"))
+    },
+    libraryDependencies ++= examplesDeps,
+    Compile / PB.targets := Seq(
+      scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",
+      scalapb.zio_grpc.ZioCodeGenerator -> (Compile / sourceManaged).value / "scalapb",
+    )
+  )
+  .dependsOn(`tracing-grpc`, `tracing-kafka`, `tracing-sttp`, `tracing-doobie`, doobie)
+
+
 
 lazy val commonSettings = {
   lazy val commonCompilerPlugins = Seq(

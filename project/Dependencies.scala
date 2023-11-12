@@ -62,4 +62,31 @@ object Dependencies {
 
   val otelJdbc = "io.opentelemetry.instrumentation" % "opentelemetry-jdbc" % "1.31.0-alpha"
   val otelGrpc = "io.opentelemetry.instrumentation" % "opentelemetry-grpc-1.6" % "1.31.0-alpha"
+
+  val examplesDeps = Seq(
+    zio,
+    "dev.zio" %% "zio-kafka" % "2.4.2",
+    "io.grpc" % "grpc-netty" % "1.50.1",
+    "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion,
+    zioGrpc,
+    "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server" % tapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion,
+    "dev.zio" %% "zio-kafka" % "2.4.2",
+
+    "io.jaegertracing" % "jaeger-core" % "1.8.0",
+    "io.jaegertracing" % "jaeger-client" % "1.8.0",
+    "io.jaegertracing" % "jaeger-zipkin" % "1.8.0",
+
+    "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.29.0",
+    "io.opentelemetry" % "opentelemetry-sdk" % "1.29.0",
+    "dev.zio" %% "zio-logging-slf4j" % "2.1.13",
+    "org.slf4j" % "jul-to-slf4j" % "1.7.36",
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
+    "ch.qos.logback" % "logback-classic" % "1.4.6",
+    "net.logstash.logback" % "logstash-logback-encoder" % "7.2",
+    "org.codehaus.janino" % "janino" % "3.1.7",
+    "org.tpolecat" %% "doobie-postgres" % doobieVersion,
+    "com.softwaremill.sttp.client3" %% "slf4j-backend" % "3.8.15",
+    "com.github.loki4j" % "loki-logback-appender" % "1.4.2",
+  )
 }

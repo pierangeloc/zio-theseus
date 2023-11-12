@@ -1,0 +1,56 @@
+<configuration>
+  <property name="FILE_LOG_PATTERN" value="${FILE_LOG_PATTERN:-${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- ${LOGGED_APPLICATION_NAME:-}[%t] ${LOG_CORRELATION_PATTERN:-}%-40.40logger{39} : %m%n}"/>
+  <property name="appName" value="wateva"/>
+  <property name="LOG_DIR" value="/Users/pierangelo.cecchetto/Documents/projects/oss/zio-toolbox/modules/example/billing-service" />
+
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+<!--    <encoder>-->
+<!--      <pattern>-->
+<!--        %d{HH:mm:ss.SSS} %-5level %logger{36} %X{X-Request-ID} - %msg%n-->
+<!--      </pattern>-->
+<!--    </encoder>  -->
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+
+  </appender>
+
+
+  <appender name="file" class="ch.qos.logback.core.FileAppender">
+    <file>${LOG_DIR}/application.log</file>
+    <append>true</append>
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+
+
+<!--  <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--    <file>/Users/pierangelo.cecchetto/Documents/projects/oss/zio-toolbox/modules/simple-example/logs/file_name.log</file>-->
+<!--    <encoder class="net.logstash.logback.encoder.LogstashEncoder" />-->
+<!--    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--      <fileNamePattern>/log/file_name.%d{yyyy-MM-dd}.log.gz</fileNamePattern>-->
+<!--      <maxHistory>7</maxHistory>-->
+<!--      <cleanHistoryOnStart>true</cleanHistoryOnStart>-->
+<!--    </rollingPolicy>-->
+  </appender>
+
+
+<!--  <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">-->
+<!--    <http>-->
+<!--      <url>http://localhost:3100/loki/api/v1/push</url>-->
+<!--    </http>-->
+<!--    <format>-->
+<!--      <label>-->
+<!--        <pattern>app=${appName},host=${HOSTNAME},traceId=%X{traceId:-NONE},spanId=%X{spanId:-NONE},logger=%X{logger_name:-NONE},threadName=%X{thread_name:-NONE},level=%level</pattern>-->
+<!--      </label>-->
+<!--      <message>-->
+<!--        <pattern>${FILE_LOG_PATTERN}</pattern>-->
+<!--      </message>-->
+<!--      <sortByTime>true</sortByTime>-->
+<!--    </format>-->
+<!--  </appender>-->
+
+  <logger name="org.apache.kafka" level="WARN"/>
+
+  <root level="INFO">
+    <appender-ref ref="console"/>
+<!--    <appender-ref ref="LOKI"/>-->
+    <appender-ref ref="file"/>
+  </root>
+</configuration>
