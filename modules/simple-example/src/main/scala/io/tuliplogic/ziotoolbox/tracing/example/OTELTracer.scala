@@ -34,7 +34,7 @@ object OTELTracer {
             .build()
         )
       openTelemetry  <- ZIO.succeed(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build())
-      tracer         <- ZIO.succeed(openTelemetry.getTracer(classOf[OpenTelemetrySdk].getCanonicalName))
+      tracer         <- ZIO.succeed(openTelemetry.getTracer(serviceName))
     } yield tracer
 
 }
