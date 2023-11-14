@@ -36,21 +36,44 @@ object Bootstrap {
       fr.locallyScoped(context)
   }
 
-  val s = "{\"timestamp\": \"2023-11-11T20:39:17.294163Z\", \"log\": \"{\\\"@timestamp\\\":\\\"2023-11-11T20:39:17.132Z\\\",\\\"level\\\":\\\"INFO\\\",\\\"service\\\":\\\"wateva\\\",\\\"traceId\\\":\\\"\\\",\\\"spanId\\\":\\\"\\\",\\\"parentSpanId\\\":\\\"\\\",\\\"pid\\\":\\\"\\\",\\\"thread\\\":\\\"zio-default-blocking-1\\\",\\\"class\\\":\\\"com.zaxxer.hikari.HikariDataSource\\\",\\\"message\\\":\\\"HikariPool-2 - Shutdown completed.\\\"}\"}"
-  private def logFormatWithBaggageAndTracing: LogFormat =
+  trait ExtraAnnotationsExtractor {
+    def extractExtraAnnotations(span: Span): Chunk[(String, String)]
+  }
+  object ExtraAnnotationsExtractor {
+    case object Noop extends ExtraAnnotationsExtractor {
+      override def extractExtraAnnotations(span: Span): Chunk[(String, String)] = Chunk.empty
+    }
+
+    case object Datadog extends ExtraAnnotationsExtractor {
+      val dd_span_id = "dd.span_id"
+      val dd_trace_id = "dd.trace_id"
+
+      def toDDSpanId(spanId: String): String = {
+        val spanIdHex = spanId
+        val ddSpanId = java.lang.Long.parseUnsignedLong(spanIdHex, 16)
+        java.lang.Long.toUnsignedString(ddSpanId)
+      }
+
+      def toDDTraceId(traceId: String): String = {
+        val traceIdHex = traceId.drop(16)
+        val ddTraceId = java.lang.Long.parseUnsignedLong(traceIdHex, 16)
+        java.lang.Long.toUnsignedString(ddTraceId)
+      }
+
+      override def extractExtraAnnotations(span: Span): Chunk[(String, String)] =
+        Chunk(dd_span_id -> toDDSpanId(span.getSpanContext.getSpanId), dd_trace_id -> toDDTraceId(span.getSpanContext.getTraceId))
+    }
+  }
+
+  private def logFormatWithBaggageAndTracing(extraAnnotationsExtractor: ExtraAnnotationsExtractor = ExtraAnnotationsExtractor.Datadog): LogFormat =
     LogFormat.make { (builder, _, _, _ , _, _, fiberRefs, _, _) =>
       fiberRefs.get(contextFiberRef).foreach { context =>
         val span = Span.fromContext(context)
-//        val baggage = Baggage.fromContext(context) //no need, this is done by Baggage.logAnnotated
-//        val baggageList = Chunk.fromIterable(baggage.asMap().asScala.map {
-//          case (k, v) => k -> v.getValue
-//        })
-
         builder.appendKeyValues(
           Chunk(
             "traceId" -> span.getSpanContext.getTraceId,
             "spanId" -> span.getSpanContext.getSpanId
-          ) //++ baggageList
+          ) ++ extraAnnotationsExtractor.extractExtraAnnotations(span)
         )
       }
   }
@@ -63,7 +86,7 @@ object Bootstrap {
   /**
    * Use this as bootstrap layer to get tracing and logging matching
    */
-  val defaultBootstrap = Runtime.removeDefaultLoggers >>> SLF4J.slf4j(SLF4J.logFormatDefault + logFormatWithBaggageAndTracing)
+  val defaultBootstrap = Runtime.removeDefaultLoggers >>> SLF4J.slf4j(SLF4J.logFormatDefault + logFormatWithBaggageAndTracing())
 
   val tracingLayer: URLayer[Tracer, ContextStorage with Baggage with Tracing] =
     ZLayer.makeSome[Tracer, ContextStorage with Baggage with Tracing](

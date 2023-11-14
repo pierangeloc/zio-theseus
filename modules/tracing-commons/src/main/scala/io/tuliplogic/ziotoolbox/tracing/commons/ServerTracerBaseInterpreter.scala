@@ -17,7 +17,7 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   protected val tracingPropagator: TraceContextPropagator = TraceContextPropagator.default
   protected val baggagePropagator: BaggagePropagator = BaggagePropagator.default
 
-  protected def spanOnRequest[R, E, A](req: Req, transport: Transport)(spanName: String)(effect: ZIO[R, E, A], statusMapper: StatusMapper[E, A] = StatusMapper.default, links: Seq[SpanContext] = Nil): ZIO[R, E, A] = {
+  protected def spanOnRequest[R, E, A](req: Req, transport: Transport)(spanName: String)(effect: ZIO[R, E, A], statusMapper: StatusMapper[E, A] = StatusMapper.default): ZIO[R, E, A] = {
     for {
       carrier <- transportToCarrier(transport)
       _ <- baggage.extract(baggagePropagator, carrier)
@@ -27,8 +27,7 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
         spanName = spanName,
         spanKind = spanKind,
         attributes = TracingUtils.makeAttributes(tracerAlgebra.requestAttributes(req).toList: _*),
-        statusMapper,
-        links
+        statusMapper
       )(effect)
     } yield res
   }

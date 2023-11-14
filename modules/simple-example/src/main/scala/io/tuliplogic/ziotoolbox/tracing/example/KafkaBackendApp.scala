@@ -76,21 +76,20 @@ object KafkaClient extends ZIOAppDefault {
     )
 
   def produce: ZIO[Producer with KafkaRecordTracer, Throwable, RecordMetadata] = {
-    (ZIO.succeed(
-        new ProducerRecord[Long, String](
+    KafkaRecordTracer.produceTracedRecord(new ProducerRecord[Long, String](
       "ziotelemetry",
       0,
       0L,
       1L,
       "Something"
-    )) @@ KafkaRecordTracer.traced[Long, String])
-    .flatMap(r =>
-        Producer.produce[Any, Long, String](
-          r,
-          keySerializer = Serde.long,
-          valueSerializer = Serde.string
-        )
+    )
+    )(r =>
+      Producer.produce[Any, Long, String](
+        r,
+        keySerializer = Serde.long,
+        valueSerializer = Serde.string
       )
+    )
   }
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =

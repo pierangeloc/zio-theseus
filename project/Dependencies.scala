@@ -62,6 +62,7 @@ object Dependencies {
 
   val otelJdbc = "io.opentelemetry.instrumentation" % "opentelemetry-jdbc" % "1.31.0-alpha"
   val otelGrpc = "io.opentelemetry.instrumentation" % "opentelemetry-grpc-1.6" % "1.31.0-alpha"
+  val zioOptics = "dev.zio" %% "zio-optics" % "0.2.1"
 
   val examplesDeps = Seq(
     zio,

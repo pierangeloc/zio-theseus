@@ -25,55 +25,34 @@ class SttpClientTracingInterpreter(
                              val baggage: Baggage,
   ) extends ClientBaseTracingInterpreter[Request[_, _], Response[_], List[Header], TracingSttpBackend]  {
 
+  override val spanKind: SpanKind = SpanKind.CLIENT
+
   override def carrierToTransport(carrier: OutgoingContextCarrier[mutable.Map[String, String]]): List[Header] =
     carrier.kernel.map(kv => Header(kv._1, kv._2)).toList
 
   override def interpretation: UIO[TracingSttpBackend] =
     ZIO.succeed(
       new TracingSttpBackend(
-        delegate,
-        request => tracerAlgebra.spanName(request),
-        beforeSendingRequest,
-        afterReceivingResponse,
-        tracerAlgebra.requestAttributes(_).foldLeft(Attributes.builder())((builder, kv) => builder.put(kv._1, kv._2)).build(),
-        enrichRequestHeaders = identity,
-        carrierToTransport,
-        tracing,
-        baggage
-      )
+        delegate
+      ) {
+        override def send[T, R >: ZioStreams with WebSockets with Effect[Task]](request: Request[T, R]): Task[Response[T]] = {
+          def enrichWithTracingTransport(request: Request[T, R], headers: List[Header]): UIO[Request[T, R]] = {
+            ZIO.succeed(request.headers(headers: _*))
+          }
+
+          spanOnRequest[Request[T, R], Any, Throwable, Response[T]](
+            request => tracerAlgebra.spanName(request),
+            enrichWithTracingTransport
+          )(request, (r: Request[T, R]) => delegate.send(r), StatusMapper.failureThrowable(_ => StatusCode.ERROR))
+        }
+      }
     )
 
 }
 
-class TracingSttpBackend(
-  delegate: SttpBackend[Task, ZioStreams with WebSockets],
-  spanName: Request[_, _] => String,
-  beforeSendingRequest: Request[_, _] => UIO[OutgoingContextCarrier[mutable.Map[String, String]]],
-  afterReceivingResponse: Response[_] => UIO[Unit],
-  attributes: Request[_, _] => Attributes,
-  enrichRequestHeaders: Request[_, _] => Request[_, _],
-  carrierToTransport: OutgoingContextCarrier[mutable.Map[String, String]] => List[Header],
-  val tracing: Tracing,
-  val baggage: Baggage) extends DelegateSttpBackend[Task, ZioStreams with WebSockets](delegate) {
-  override def send[T, R >: ZioStreams with WebSockets with Effect[Task]](
-                                                                           request: Request[T, R]
-                                                                         ): Task[Response[T]] = {
-    for {
-      res <- tracing.span(
-        spanName = spanName(request),
-        spanKind = SpanKind.CLIENT,
-        statusMapper = StatusMapper.failureThrowable(_ => StatusCode.ERROR),
-        attributes = attributes(request),
-      )(
-        for {
-          outgoingCarrier <- beforeSendingRequest(request)
-          res <- delegate.send(request.headers(carrierToTransport(outgoingCarrier): _*))
-          _ <- afterReceivingResponse(res)
-        } yield res
-      )
-    } yield res
-  }
-}
+abstract class TracingSttpBackend(
+  delegate: SttpBackend[Task, ZioStreams with WebSockets]
+  ) extends DelegateSttpBackend[Task, ZioStreams with WebSockets](delegate){}
 
 object SttpClientTracingInterpreter {
   def make(

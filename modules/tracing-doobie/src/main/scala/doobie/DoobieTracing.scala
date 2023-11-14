@@ -66,7 +66,6 @@ object DoobieTracing {
                 .put(SemanticAttributes.DB_USER, dbInfo.getUser)
                 .put(SemanticAttributes.DB_STATEMENT, sql)
                 .putAll(extraAttributes(dbInfo, sql))
-
                 .build()
             )
           } yield res
