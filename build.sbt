@@ -17,6 +17,9 @@ lazy val `zio-toolbox` =
     .aggregate(`tracing-grpc`)
     .aggregate(`tracing-kafka`)
     .aggregate(`simple-example`)
+    .aggregate(`example-billing-service`)
+    .aggregate(`example-charging-hub`)
+    .aggregate(`example-charging-service`)
 
 lazy val `tracing-commons` =
   project

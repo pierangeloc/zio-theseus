@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package io.tuliplogic.ziotoolbox.tracing.example.proto;
+
+message SessionDetails {
+  string chargePointId = 1;
+  string tokenId = 2;
+}
+
+message StartSessionResponse {
+  bool success = 1;
+}
+
+service ChargingHubApi {
+  rpc StartSession (SessionDetails) returns (StartSessionResponse);
+}
