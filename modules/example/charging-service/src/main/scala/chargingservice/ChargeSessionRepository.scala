@@ -8,6 +8,7 @@ import zio.{IO, Task, ZIO, ZLayer}
 import doobie.postgres.implicits._
 import doobie.util.fragment
 import doobie.util.transactor.Transactor
+import zio.telemetry.opentelemetry.tracing.Tracing
 
 import java.time.Instant
 import java.util.UUID
@@ -27,19 +28,22 @@ object ChargeSessionRepository {
   )
 }
 
-class DoobieChargeSessionRepository(tx: Transactor[Task]) extends ChargeSessionRepository {
+class DoobieChargeSessionRepository(tx: HikariTransactor[Task], tracing: Tracing) extends ChargeSessionRepository {
 
   import doobie.implicits._
   import zio.interop.catz._
-  import doobie.DoobieTracing.syntax.TracedFragment
+  import doobie.DoobieTracing.syntax._
 
   override def upsert(chargeSession: ChargeSession): IO[DBError, Unit] =
     ZIO.logInfo(s"upserting ChargeSession $chargeSession") *>
-      Queries.upsert(chargeSession).update.run.transact(tx).mapError(t => DBError("Error upserting charge session", Some(t))).unit
+      Queries.upsert(chargeSession)
+        .runTraced(_.update.run)(tx, tracing)
+        .mapError(t => DBError("Error upserting charge session", Some(t))).unit
 
   override def get(chargeSessionId: UUID): IO[DBError, Option[ChargeSession]] =
     ZIO.logInfo(s"fetching ChargeSession with id $chargeSessionId") *>
-      Queries.get(chargeSessionId).query[ChargeSession].to[List].transact(tx)
+      Queries.get(chargeSessionId)
+        .runTraced(_.query[ChargeSession].to[List])(tx, tracing)
         .mapBoth(t => DBError(s"Error fetching charge session with id $chargeSessionId", Some(t)),
           css => css.headOption)
 }
@@ -69,5 +73,6 @@ object DoobieChargeSessionRepository {
   val live = ZLayer.fromZIO {
     for {
       tx <- ZIO.service[HikariTransactor[Task]]
-    } yield new DoobieChargeSessionRepository(tx)  }
+      tracing <- ZIO.service[Tracing]
+    } yield new DoobieChargeSessionRepository(tx, tracing)  }
 }

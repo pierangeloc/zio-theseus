@@ -2,7 +2,7 @@ package billing
 
 import billing.KafkaSessionConsumer.KafkaConfig
 import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, FlywayMigration, TransactorLayer}
-import io.tuliplogic.ziotoolbox.tracing.commons.Bootstrap
+import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import zio.kafka.consumer.{Consumer, ConsumerSettings}
 import zio.{Scope, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
@@ -57,6 +57,8 @@ object BillingServiceApp extends ZIOAppDefault {
       OneTariffService.live,
       TransactorLayer.Debug.withLogging,
       FlywayMigration.layer,
+      Bootstrap.tracingLayer,
+      OTELTracer.default("billing-service")
     )
 
 

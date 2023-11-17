@@ -3,8 +3,10 @@ package billing
 import billing.BillableSessionRepository.BillableSession
 import billing.DoobieBillableSessionRepostory.Queries
 import doobie.Transactor
+import doobie.hikari.HikariTransactor
 import doobie.util.fragment
 import io.tuliplogic.ziotoolbox.doobie.DBError
+import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.{IO, LogAnnotation, Task, ZIO, ZLayer}
 
 import java.time.Instant
@@ -27,10 +29,12 @@ object BillableSessionRepository {
   )
 }
 
-class DoobieBillableSessionRepostory(tx: Transactor[Task]) extends BillableSessionRepository {
+class DoobieBillableSessionRepostory(tx: HikariTransactor[Task], tracing: Tracing) extends BillableSessionRepository {
 
   import doobie.implicits._
   import zio.interop.catz._
+  import doobie.postgres.implicits._
+  import doobie.DoobieTracing.syntax._
   override def insert(billableSession: BillableSession): IO[DBError, Unit] = {
     ZIO.logAnnotate(
       LogAnnotation("billableSession.id", billableSession.id.toString),
@@ -40,9 +44,7 @@ class DoobieBillableSessionRepostory(tx: Transactor[Task]) extends BillableSessi
     ZIO.logInfo(s"upserting BillableSession $billableSession") *>
       Queries
         .insert(billableSession)
-        .update
-        .run
-        .transact(tx)
+        .runTraced(_.update.run)(tx, tracing)
         .mapError(t => DBError("Error upserting charge session", Some(t)))
         .unit
   }
@@ -51,9 +53,7 @@ class DoobieBillableSessionRepostory(tx: Transactor[Task]) extends BillableSessi
     ZIO.logInfo("fetching BillableSession with id $billableSessionId") *>
       Queries
         .get(billableSessionId)
-        .query[BillableSession]
-        .to[List]
-        .transact(tx)
+        .runTraced(_.query[BillableSession].to[List])(tx, tracing)
         .mapBoth(t => DBError("Error upserting charge session", Some(t)), css => css.headOption)
 }
 
@@ -77,7 +77,8 @@ object DoobieBillableSessionRepostory {
 
   val layer = ZLayer.fromZIO {
     for {
-      tx <- ZIO.service[Transactor[Task]]
-    } yield new DoobieBillableSessionRepostory(tx)
+      tx <- ZIO.service[HikariTransactor[Task]]
+      tracing <- ZIO.service[Tracing]
+    } yield new DoobieBillableSessionRepostory(tx, tracing)
   }
 }
