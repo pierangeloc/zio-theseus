@@ -66,6 +66,6 @@ object GrpcClient {
     ZioStatusApi.GetStatusApiClient.getStatus(GetStatusRequest())
 
   val clientLayer: ZLayer[Tracing with Baggage, Throwable, ZioStatusApi.GetStatusApiClient]= ZLayer.scoped {
-    GrpcClientTracing.serviceClient("localhost", GrpcBackendApp.serverPort)(ch => ZioStatusApi.GetStatusApiClient.scoped(ch))
+    GrpcClientTracing.tracedClient("localhost", GrpcBackendApp.serverPort)(ch => ZioStatusApi.GetStatusApiClient.scoped(ch))
   }
 }

@@ -1,0 +1,8 @@
+### start session
+POST http://localhost:9000/session/start
+
+{
+  "chargePointId": "CP_1",
+  "chargeCardId": "CC_1"
+}
+### stop session

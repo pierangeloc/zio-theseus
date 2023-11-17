@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package charginghub;
+
+message StartSessionRequest {
+  string requestId = 1;
+  string chargePointId = 2;
+  string tokenId = 3;
+}
+
+message StopSessionRequest {
+  string sessionId = 1;
+}
+
+message StartSessionResponse {
+  string sessionId = 1;
+  bool success = 2;
+}
+
+message StopSessionResponse {
+  bool success = 1;
+}
+
+service ChargingHubApi {
+  rpc StartSession (StartSessionRequest) returns (StartSessionResponse);
+  rpc StopSession (StopSessionRequest) returns (StopSessionResponse);
+}

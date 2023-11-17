@@ -125,11 +125,11 @@ object GrpcClientTracing {
    * {{{
    * val clientLayer: ZLayer[Tracing with Baggage, Throwable, ZioStatusApi.GetStatusApiClient] =
    *   ZLayer.scoped {
-   *     ClientGrpcTracing.serviceClient("localhost", GrpcBackendApp.serverPort)(ch => ZioStatusApi.GetStatusApiClient.scoped(ch))
+   *     ClientGrpcTracing.tracedClient("localhost", GrpcBackendApp.serverPort)(ch => ZioStatusApi.GetStatusApiClient.scoped(ch))
    *   }
    * }}}
    */
-  def serviceClient[S](
+  def tracedClient[S](
     host: String,
     port: Int,
     tracerAlgebra: TracerAlgebra[GrpcReq, Any] = defaultGrpcClientTracerAlgebra

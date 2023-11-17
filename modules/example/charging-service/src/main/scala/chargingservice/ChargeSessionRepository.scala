@@ -47,7 +47,7 @@ object DoobieChargeSessionRepository {
     import doobie.implicits._
     def upsert(chargeSession: ChargeSession): doobie.Update0 =
       sql"""
-           insert into charge_sessions (id, charge_point_id, charge_card_id, started_at, ended_at)
+           insert into charge_session (id, charge_point_id, charge_card_id, started_at, ended_at)
            values (${chargeSession.id}, ${chargeSession.chargePointId}, ${chargeSession.chargeCardId}, ${chargeSession.starteAt}, ${chargeSession.endedAt})
            on conflict (id) do update set
              charge_point_id = ${chargeSession.chargePointId},
@@ -59,7 +59,7 @@ object DoobieChargeSessionRepository {
     def get(chargeSessionId: UUID): doobie.Query0[ChargeSession] =
       sql"""
            select id, charge_point_id, token_id, started_at, ended_at
-           from charge_sessions
+           from charge_session
            where id = $chargeSessionId
          """.query[ChargeSession]
   }
