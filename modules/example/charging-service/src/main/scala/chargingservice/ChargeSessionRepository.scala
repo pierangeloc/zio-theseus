@@ -1,10 +1,12 @@
 package chargingservice
 
 import chargingservice.ChargeSessionRepository.ChargeSession
+import chargingservice.DoobieChargeSessionRepository.Queries
 import doobie.hikari.HikariTransactor
 import io.tuliplogic.ziotoolbox.doobie.DBError
 import zio.{IO, Task, ZIO, ZLayer}
 import doobie.postgres.implicits._
+import doobie.util.transactor.Transactor
 
 import java.time.Instant
 import java.util.UUID
@@ -24,10 +26,20 @@ object ChargeSessionRepository {
   )
 }
 
-class DoobieChargeSessionRepository extends ChargeSessionRepository {
-  override def upsert(chargeSession: ChargeSession): IO[DBError, Unit] = ???
+class DoobieChargeSessionRepository(tx: Transactor[Task]) extends ChargeSessionRepository {
 
-  override def get(chargeSessionId: UUID): IO[DBError, Option[ChargeSession]] = ???
+  import doobie.implicits._
+  import zio.interop.catz._
+
+  override def upsert(chargeSession: ChargeSession): IO[DBError, Unit] =
+    ZIO.logInfo(s"upserting ChargeSession $chargeSession") *>
+      Queries.upsert(chargeSession).run.transact(tx).mapError(t => DBError("Error upserting charge session", Some(t))).unit
+
+  override def get(chargeSessionId: UUID): IO[DBError, Option[ChargeSession]] =
+    ZIO.logInfo(s"fetching ChargeSession with id $chargeSessionId") *>
+      Queries.get(chargeSessionId).to[List].transact(tx)
+        .mapBoth(t => DBError(s"Error fetching charge session with id $chargeSessionId", Some(t)),
+          css => css.headOption)
 }
 
 object DoobieChargeSessionRepository {
@@ -37,6 +49,11 @@ object DoobieChargeSessionRepository {
       sql"""
            insert into charge_sessions (id, charge_point_id, charge_card_id, started_at, ended_at)
            values (${chargeSession.id}, ${chargeSession.chargePointId}, ${chargeSession.chargeCardId}, ${chargeSession.starteAt}, ${chargeSession.endedAt})
+           on conflict (id) do update set
+             charge_point_id = ${chargeSession.chargePointId},
+             charge_card_id = ${chargeSession.chargeCardId},
+             started_at = ${chargeSession.starteAt},
+             ended_at = ${chargeSession.endedAt}
          """.update
 
     def get(chargeSessionId: UUID): doobie.Query0[ChargeSession] =
@@ -50,20 +67,5 @@ object DoobieChargeSessionRepository {
   val live = ZLayer.fromZIO {
     for {
       tx <- ZIO.service[HikariTransactor[Task]]
-    } yield new ChargeSessionRepository {
-
-      import doobie.implicits._
-      import zio.interop.catz._
-
-      override def upsert(chargeSession: ChargeSession): IO[DBError, Unit] =
-        ZIO.logInfo(s"upserting ChargeSession $chargeSession") *>
-          Queries.upsert(chargeSession).run.transact(tx).mapError(t => DBError("Error upserting charge session", Some(t))).unit
-
-      override def get(chargeSessionId: UUID): IO[DBError, Option[ChargeSession]] =
-        ZIO.logInfo(s"fetching ChargeSession with id $chargeSessionId") *>
-          Queries.get(chargeSessionId).to[List].transact(tx)
-            .mapBoth(t => DBError("Error upserting charge session", Some(t)),
-              css => css.headOption)
-    }
-  }
+    } yield new DoobieChargeSessionRepository(tx)  }
 }
