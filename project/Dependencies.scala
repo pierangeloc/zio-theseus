@@ -87,5 +87,6 @@ object Dependencies {
     "org.tpolecat" %% "doobie-postgres" % doobieVersion,
     "com.softwaremill.sttp.client3" %% "slf4j-backend" % "3.8.15",
     "com.github.loki4j" % "loki-logback-appender" % "1.4.2",
+    "org.tpolecat" %% "doobie-postgres" % "1.0.0-RC4"
   )
 }

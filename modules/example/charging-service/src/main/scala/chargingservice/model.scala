@@ -7,7 +7,7 @@ object model {
   case class ChargeSessionEnded(
     id: UUID,
     chargePointId: String,
-    tokenId: String,
+    chargeCardId: String,
     starteAt: Instant,
     endedAt: Instant
   )
