@@ -51,27 +51,40 @@ theme: Fira, 3
 - Metrics
 - Logs
 
-[.code-highlight: 1]
-[.code-highlight: 2-4]
-[.code-highlight: 2-8]
-[.code-highlight: 2-12]
-```scala
-val prg = salutation *> city
-val prg: ZIO[Console, Nothing, Unit] = salutation *> city
+---
+# OpenTelemetry
 
-ZIO[-R, +E, +A]
-
-       ⬇
-
-R => IO[Either[E, A]]
-
-       ⬇
-
-R => Either[E, A]
-```
+- Traces
+- Metrics // TODO: grayed out
+- Logs
 
 ---
-# ZIO - 101
+# OpenTelemetry
+
+- What are traces
+- What are spans
+- Spans have attributes
+- `TraceContext`
+- `Baggage`
+- How to create a span around an effect
+- Guarantees of the span being ended
+- Error management: how to translate the error channel and the failure channel into span properties
+- example: wrap a span around a call
+- sequential spans, parallel spans (quickly)
+- What does the dd agent do?
+- Integration across different boundaries. IncomingContextCarrier, OutgoingContextCarrier
+- But How does it do it? Through AOP!
+- Binary code instrumentation, that adds aspects around the code
+- + very powerful, very seamless, works most of the time. DX is great because the only thing to do is add a jvm option!
++ - when it doesn't work, it's very difficult to change or to modify
+- My take: Use the power of functional programming, and of the Scala language, to keep benefiting from instrumentation
+- Example:
+- Show before instrumentation
+- Show after instrumentation
+- How is this implemented?
+---
+
+# ZIO-OpenTelemetry
 
 ^What does it mean when we see ZIO[Console, Nothing, Unit]?
 

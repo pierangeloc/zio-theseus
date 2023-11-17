@@ -1,7 +1,7 @@
 package billing
 
 import billing.KafkaSessionConsumer.KafkaConfig
-import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, TransactorLayer}
+import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, FlywayMigration, TransactorLayer}
 import io.tuliplogic.ziotoolbox.tracing.commons.Bootstrap
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import zio.kafka.consumer.{Consumer, ConsumerSettings}
@@ -19,14 +19,14 @@ object BillingServiceApp extends ZIOAppDefault {
 
   def program: ZIO[SessionConsumer, Throwable, Unit] = for {
     service <- ZIO.service[SessionConsumer]
-    _ <- service.consumeSessions.runDrain
+    _ <- service.consumeSessions.drain.runDrain
   } yield ()
 
   val consumerLayer = ZLayer.scoped {
     for {
       kafkaConfig <- ZIO.service[KafkaConfig]
       consumer <- Consumer.make(
-        ConsumerSettings(List(kafkaConfig.bootstrapServers)).withGroupId("billingService")
+        ConsumerSettings(List(kafkaConfig.bootstrapServers)).withGroupId("billing-service")
       )
     } yield consumer
   }
@@ -34,7 +34,7 @@ object BillingServiceApp extends ZIOAppDefault {
   val configLayer = ZLayer.succeed(
     Config(
       dbConnectionParams = DbConnectionParams(
-        url = "jdbc:postgresql://localhost:5411/db_billing_service",
+        url = "jdbc:postgresql://localhost:5412/db_billing_service",
         user = "db_billing_service",
         password = "db_billing_service",
         maxConnections = 10
@@ -56,6 +56,7 @@ object BillingServiceApp extends ZIOAppDefault {
       OneCustomerCRMService.live,
       OneTariffService.live,
       TransactorLayer.Debug.withLogging,
+      FlywayMigration.layer,
     )
 
 

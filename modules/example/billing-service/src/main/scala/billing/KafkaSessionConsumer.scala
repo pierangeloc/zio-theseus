@@ -35,6 +35,7 @@ class KafkaSessionConsumer(kafkaConsumer: Consumer, kafkaConfig: KafkaConfig, cr
 
   private def processSingleSession(chargeSessionEnded: ChargeSessionEnded) =
     for {
+      _ <- ZIO.logInfo(s"start processing ChargeSessionEnded: $chargeSessionEnded ")
       maybeCustomer <- crmServic.lookupCustomer(chargeSessionEnded.chargeCardId)
       customer <- ZIO.fromOption(maybeCustomer).orElseFail("customer not found")
       tariff   <- tariffService.getTariff(customer.id, chargeSessionEnded.chargePointId)
@@ -45,9 +46,10 @@ class KafkaSessionConsumer(kafkaConsumer: Consumer, kafkaConfig: KafkaConfig, cr
         pricePerMinute = tariff.pricePerMinute,
         starteAt = chargeSessionEnded.starteAt,
         endedAt = chargeSessionEnded.endedAt,
-        totalPrice = tariff.pricePerMinute * chargeSessionEnded.endedAt.getEpochSecond - chargeSessionEnded.starteAt.getEpochSecond
+        totalPrice = tariff.pricePerMinute * (chargeSessionEnded.endedAt.getEpochSecond - chargeSessionEnded.starteAt.getEpochSecond)
       )
       _ <- billableSessionRepository.insert(billableSession)
+      _ <- ZIO.logInfo(s"end processing ChargeSessionEnded: $chargeSessionEnded ")
     } yield ()
 
 }

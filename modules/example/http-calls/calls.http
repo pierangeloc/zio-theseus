@@ -5,4 +5,11 @@ POST http://localhost:9000/session/start
   "chargePointId": "CP_1",
   "chargeCardId": "CC_1"
 }
+
+
 ### stop session
+POST http://localhost:9000/session/stop
+
+{
+  "sessionId": "fd20ffb3-6fe4-4f66-abfa-718ce6839fa2"
+}

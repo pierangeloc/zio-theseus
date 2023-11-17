@@ -3,14 +3,17 @@ package chargingservice
 import charginghub.charging_hub_api.ZioChargingHubApi
 import io.grpc.ManagedChannelBuilder
 import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, FlywayMigration, TransactorLayer}
+import io.tuliplogic.ziotoolbox.tracing.commons.Bootstrap
 import scalapb.zio_grpc.ZManagedChannel
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.ztapir._
 import zio.http.{HttpApp, Server}
 import zio.kafka.producer.{Producer, ProducerSettings}
-import zio.{Cause, Scope, ULayer, URLayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
+import zio.{Cause, Scope, URLayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
 object ChargeSessionApp extends ZIOAppDefault {
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
+    Bootstrap.defaultBootstrap
 
   case class ChargingHubClientConfig(
     host: String,
@@ -34,7 +37,7 @@ object ChargeSessionApp extends ZIOAppDefault {
         maxConnections = 10
       ),
       kafkaPublisherConfig = KafkaPublisher.Config(
-        topic = "charging-service",
+        topic = "session-events",
         bootstrapServers = "localhost:29092"
       ),
       chargingHubClientConfig = ChargingHubClientConfig(

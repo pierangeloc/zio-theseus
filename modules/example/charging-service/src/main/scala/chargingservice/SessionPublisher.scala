@@ -41,7 +41,7 @@ case class KafkaPublisher(config: KafkaPublisher.Config, producer: Producer) ext
           keySerializer = Serde.uuid,
           valueSerializer = eventSerde
         )
-        .unit
+        .unit *> ZIO.logInfo(s"produced ChargeSessionEnded $chargeSessionEnded to Kafka ")
     }
 
 }

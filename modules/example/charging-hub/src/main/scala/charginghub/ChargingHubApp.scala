@@ -3,7 +3,7 @@ package charginghub
 import io.grpc.{ServerBuilder, StatusException}
 import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
 import charginghub.charging_hub_api.{StartSessionRequest, StartSessionResponse, StopSessionRequest, StopSessionResponse, ZioChargingHubApi}
-import io.tuliplogic.ziotoolbox.tracing.grpc.server.GrpcServerTracingInterpreter
+import io.tuliplogic.ziotoolbox.tracing.grpc.server.{GrpcServerNoTracing, GrpcServerTracingInterpreter}
 import scalapb.zio_grpc.{RequestContext, Server, ServerLayer, ServiceList}
 import zio.{IO, Scope, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
@@ -15,7 +15,8 @@ object ChargingHubApp extends ZIOAppDefault {
     override def startSession(request: StartSessionRequest): IO[StatusException, StartSessionResponse] = {
       ZIO.logAnnotate("sessionId", request.requestId) {
         ZIO.logInfo(s"Received start session request $request") *>
-          zio.Random.nextBoolean.zip(zio.Random.nextUUID).flatMap { case (success, uuid) =>
+//          zio.Random.nextBoolean.zip(zio.Random.nextUUID).flatMap { case (success, uuid) =>
+          ZIO.succeed(true).zip(zio.Random.nextUUID).flatMap { case (success, uuid) =>
             (if (success) ZIO.logInfo("Session start succeeded") else ZIO.logInfo("Session start failed")).as(StartSessionResponse(uuid.toString, success))
           }
       }
@@ -24,7 +25,8 @@ object ChargingHubApp extends ZIOAppDefault {
     override def stopSession(request: StopSessionRequest): IO[StatusException, StopSessionResponse] = {
       ZIO.logAnnotate("stopSessionId", request.sessionId) {
         ZIO.logInfo(s"Received stop session request for session ${request.sessionId}") *>
-          zio.Random.nextBoolean.flatMap { case success =>
+//          zio.Random.nextBoolean.flatMap { case success =>
+          ZIO.succeed(true).flatMap { case success =>
             (if (success) ZIO.logInfo("Session stop succeeded") else ZIO.logInfo("Session start failed")).as(StopSessionResponse(success))
           }
       }
@@ -32,9 +34,12 @@ object ChargingHubApp extends ZIOAppDefault {
   }
 
   object ApiImpl {
-    val layer = GrpcServerTracingInterpreter.serviceWithTracing[Any, ZioChargingHubApi.ChargingHubApi](_ =>
-      new ApiImpl
-    )
+//    val layer = GrpcServerTracingInterpreter.serviceWithTracing[Any, ZioChargingHubApi.ChargingHubApi](_ =>
+//      new ApiImpl
+//    )
+
+    val layer: ZLayer[Any, Nothing, ZioChargingHubApi.GChargingHubApi[RequestContext, StatusException]] =
+      GrpcServerNoTracing.service((_: Any) => new ApiImpl)
   }
 
   private def serverLive(
@@ -48,12 +53,11 @@ object ChargingHubApp extends ZIOAppDefault {
     ZLayer.make[Server](
       serverLive(port),
       ChargingHubApp.ApiImpl.layer,
-      Bootstrap.tracingLayer,
-      OTELTracer.default("charging-hub"),
+//      Bootstrap.tracingLayer,
+//      OTELTracer.default("charging-hub"),
     )
 
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
-
     makeLaunchableServer(9001).launch
 }
