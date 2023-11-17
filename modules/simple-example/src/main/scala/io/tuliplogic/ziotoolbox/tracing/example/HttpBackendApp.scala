@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
 import io.tuliplogic.ziotoolbox.tracing.sttp.client.TracingSttpBackend
-import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirTracingEndpoint
+import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirServerTracer
 import sttp.client3.UriContext
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import zio.http.{HttpApp, Server}
@@ -14,9 +14,9 @@ object HttpBackendApp extends ZIOAppDefault {
     Bootstrap.defaultBootstrap
   val port = 9002
 
-  val zioHttpApp: ZIO[TapirTracingEndpoint, Nothing, HttpApp[CallRecordRepository, Throwable]] =
+  val zioHttpApp: ZIO[TapirServerTracer, Nothing, HttpApp[CallRecordRepository, Throwable]] =
     for {
-      tapirTracingInterpretation <- ZIO.service[TapirTracingEndpoint]
+      tapirTracingInterpretation <- ZIO.service[TapirServerTracer]
     } yield {
       import tapirTracingInterpretation._
       ZioHttpInterpreter().toHttp(
@@ -49,7 +49,7 @@ object HttpBackendApp extends ZIOAppDefault {
 //          ContextStorage.fiberRef,
           Bootstrap.tracingLayer,
           OTELTracer.default("http-backend-app"),
-          TapirTracingEndpoint.layer()
+          TapirServerTracer.layer()
         )
 }
 

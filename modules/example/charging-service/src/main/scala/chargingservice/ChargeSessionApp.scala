@@ -4,6 +4,7 @@ import charginghub.charging_hub_api.ZioChargingHubApi
 import io.grpc.ManagedChannelBuilder
 import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, FlywayMigration, TransactorLayer}
 import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
+import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirServerTracer
 import scalapb.zio_grpc.ZManagedChannel
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.ztapir._
@@ -57,33 +58,38 @@ object ChargeSessionApp extends ZIOAppDefault {
       } yield p
     )
 
-  val zioHttpApp: HttpApp[Any with ChargeSessionHandler, Throwable] =
-    ZioHttpInterpreter().toHttp(
-      List(
-        ChargeSessionApi.startSessionEndpoint.zServerLogic { chargingRequest =>
-          for {
-            csh <- ZIO.service[ChargeSessionHandler]
-            resp <-
-              csh
-                .startSession(chargingRequest)
-                .flatMapError(t =>
-                  ZIO.logErrorCause("Error handling start charging request", Cause.die(t)).as(s"error ${t.getMessage}")
-                )
-          } yield resp
-        },
-        ChargeSessionApi.stopSessionEndpoint.zServerLogic { stopChargeSessionRequest =>
-          for {
-            csh <- ZIO.service[ChargeSessionHandler]
-            resp <-
-              csh
-                .stopSession(stopChargeSessionRequest)
-                .flatMapError(t =>
-                  ZIO.logErrorCause("Error handling stop charging request", Cause.die(t)).as(s"error ${t.getMessage}")
-                )
-          } yield resp
-        }
+  val zioHttpApp: ZIO[TapirServerTracer, Nothing, HttpApp[Any with ChargeSessionHandler, Throwable]] =
+    for {
+      tapirTracingInterpretation <- ZIO.service[TapirServerTracer]
+    } yield {
+      import tapirTracingInterpretation._
+      ZioHttpInterpreter().toHttp(
+        List(
+          ChargeSessionApi.startSessionEndpoint.zServerLogicTracing("start-session") { chargingRequest =>
+            for {
+              csh <- ZIO.service[ChargeSessionHandler]
+              resp <-
+                csh
+                  .startSession(chargingRequest)
+                  .flatMapError(t =>
+                    ZIO.logErrorCause("Error handling start charging request", Cause.die(t)).as(s"error ${t.getMessage}")
+                  )
+            } yield resp
+          },
+          ChargeSessionApi.stopSessionEndpoint.zServerLogicTracing("stop-session") { stopChargeSessionRequest =>
+            for {
+              csh <- ZIO.service[ChargeSessionHandler]
+              resp <-
+                csh
+                  .stopSession(stopChargeSessionRequest)
+                  .flatMapError(t =>
+                    ZIO.logErrorCause("Error handling stop charging request", Cause.die(t)).as(s"error ${t.getMessage}")
+                  )
+            } yield resp
+          }
+        )
       )
-    )
+  }
 
   val zioHttpServerConfig: URLayer[Config, Server.Config] =
     ZLayer.fromZIO {
@@ -108,8 +114,7 @@ object ChargeSessionApp extends ZIOAppDefault {
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     ZIO.logInfo("Running HTTP app") *>
-      Server
-        .serve(zioHttpApp.withDefaultErrorResponse)
+      zioHttpApp.flatMap(httpApp => Server.serve(httpApp.withDefaultErrorResponse))
         .provide(
           Server.live,
           zioHttpServerConfig,
@@ -125,7 +130,7 @@ object ChargeSessionApp extends ZIOAppDefault {
           kafkaProducerLayer,
           grpcClientLayer,
           Bootstrap.tracingLayer,
-          OTELTracer.default("charging-service")
-
+          OTELTracer.default("charging-service"),
+          TapirServerTracer.layer()
         )
 }

@@ -77,6 +77,7 @@ theme: Fira, 3
 - Binary code instrumentation, that adds aspects around the code
 - + very powerful, very seamless, works most of the time. DX is great because the only thing to do is add a jvm option!
 + - when it doesn't work, it's very difficult to change or to modify
++ - Instruments all or nothing. You can't selectively instrument something but not everything
 - My take: Use the power of functional programming, and of the Scala language, to keep benefiting from instrumentation
 - Example:
 - Show before instrumentation
