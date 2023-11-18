@@ -5,6 +5,7 @@ import billing.KafkaSessionConsumer.model.{ChargeSessionEnded, eventSerde}
 import io.circe.generic.auto._
 import io.circe.parser
 import io.circe.syntax._
+import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.KafkaConsumerTracer
 import zio.{ZIO, ZLayer}
 import zio.kafka.consumer.{Consumer, Subscription}
 import zio.kafka.serde.Serde
@@ -18,7 +19,7 @@ trait SessionConsumer {
   def consumeSessions: ZStream[Any, Throwable, Unit]
 }
 
-class KafkaSessionConsumer(kafkaConsumer: Consumer, kafkaConfig: KafkaConfig, crmServic: CRMService, tariffService: TariffService, billableSessionRepository: BillableSessionRepository) extends SessionConsumer {
+class KafkaSessionConsumer(kafkaConsumerTracer: KafkaConsumerTracer, kafkaConsumer: Consumer, kafkaConfig: KafkaConfig, crmServic: CRMService, tariffService: TariffService, billableSessionRepository: BillableSessionRepository) extends SessionConsumer {
 
   override def consumeSessions: ZStream[Any, Throwable, Unit] =
     kafkaConsumer
@@ -28,10 +29,12 @@ class KafkaSessionConsumer(kafkaConsumer: Consumer, kafkaConfig: KafkaConfig, cr
         valueDeserializer = eventSerde
       )
       .mapZIO { record =>
-        processSingleSession(record.record.value).forkDaemon.as(record.offset)
+        (processSingleSession(record.record.value) @@ KafkaConsumerTracer.aspects.kafkaTraced(record.record))
+          .forkDaemon.as(record.offset)
       }
       .aggregateAsync(Consumer.offsetBatches)
       .mapZIO(_.commit)
+      .provideLayer(ZLayer.succeed(kafkaConsumerTracer))
 
   private def processSingleSession(chargeSessionEnded: ChargeSessionEnded) =
     for {
@@ -85,8 +88,9 @@ object KafkaSessionConsumer {
       config   <- ZIO.service[KafkaConfig]
       crmService <- ZIO.service[CRMService]
       tariffService <- ZIO.service[TariffService]
+      kafkaConsumerTracer <- ZIO.service[KafkaConsumerTracer]
       billableSessionRepository <- ZIO.service[BillableSessionRepository]
-    } yield new KafkaSessionConsumer(consumer, config, crmService, tariffService, billableSessionRepository)
+    } yield new KafkaSessionConsumer(kafkaConsumerTracer, consumer, config, crmService, tariffService, billableSessionRepository)
   }
 }
 
