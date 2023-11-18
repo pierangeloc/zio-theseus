@@ -4,7 +4,7 @@ import io.opentelemetry.api.trace.SpanKind
 import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer, TracingUtils}
 import io.tuliplogic.ziotoolbox.tracing.example.proto.status_api.{GetStatusRequest, ZioStatusApi}
 import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing
-import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaProducerTracer
 import io.tuliplogic.ziotoolbox.tracing.sttp.client.{SttpClientTracingInterpreter, TracingSttpBackend}
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import sttp.client3.logging.slf4j.Slf4jLogger
@@ -24,7 +24,7 @@ object ProxyApp extends ZIOAppDefault {
 
   val port = 9003
 
-  def performProxyCalls(parallel: Boolean): ZIO[Producer with ProducerTracing.KafkaRecordTracer with Tracing with Baggage with TracingSttpBackend, Throwable, Unit] = if (parallel) {
+  def performProxyCalls(parallel: Boolean): ZIO[Producer with ProducerTracing.KafkaProducerTracer with Tracing with Baggage with TracingSttpBackend, Throwable, Unit] = if (parallel) {
     ZIO.logInfo("Running parallel calls") *>
       ZIO.logAnnotate("parallel-calls", "true")(
         HttpBackendClient.tracingCall.timed.flatMap(o => ZIO.logInfo(s"http call - DONE - took ${o._1.toMillis} ms")) &>
@@ -49,7 +49,7 @@ object ProxyApp extends ZIOAppDefault {
     Server.Config.default.binding("localhost", port)
   )
 
-  val zioHttpApp: HttpApp[TracingSttpBackend with Tracing with Baggage with Producer with KafkaRecordTracer, Throwable] =
+  val zioHttpApp: HttpApp[TracingSttpBackend with Tracing with Baggage with Producer with KafkaProducerTracer, Throwable] =
     ZioHttpInterpreter().toHttp(
       StatusEndpoints.proxyStatusesEndpoint.zServerLogic { qp =>
         val parallel = qp.get("parallel").contains("true")
@@ -98,7 +98,7 @@ object ProxyApp extends ZIOAppDefault {
         Bootstrap.tracingLayer,
         OTELTracer.default("proxy-app"),
         KafkaClient.producerLayer,
-        KafkaRecordTracer.layer(),
+        KafkaProducerTracer.layer(),
       )
   }
 }

@@ -3,7 +3,7 @@ package io.tuliplogic.ziotoolbox.tracing.kafka.producer
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes
 import io.tuliplogic.ziotoolbox.tracing.commons.{ClientBaseTracingInterpreter, TracerAlgebra}
-import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaProducerTracer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.{Header => KafkaHeader}
@@ -17,13 +17,13 @@ import scala.jdk.CollectionConverters._
 
 object ProducerTracing {
 
-  trait KafkaRecordTracer {
+  trait KafkaProducerTracer {
     def produceTracedRecord[K, V, R, E, A](producerRecord: ProducerRecord[K, V])(produce: ProducerRecord[K, V] => ZIO[R, E, A]): ZIO[R, E, A]
   }
 
-  object KafkaRecordTracer {
-    def produceTracedRecord[K, V, R <: KafkaRecordTracer, E, A](producerRecord: ProducerRecord[K, V])(produce: ProducerRecord[K, V] => ZIO[R, E, A]): ZIO[R, E, A] =
-      ZIO.serviceWithZIO[KafkaRecordTracer](tracer => tracer.produceTracedRecord(producerRecord)(produce))
+  object KafkaProducerTracer {
+    def produceTracedRecord[K, V, R <: KafkaProducerTracer, E, A](producerRecord: ProducerRecord[K, V])(produce: ProducerRecord[K, V] => ZIO[R, E, A]): ZIO[R, E, A] =
+      ZIO.serviceWithZIO[KafkaProducerTracer](tracer => tracer.produceTracedRecord(producerRecord)(produce))
 
 
     val tracerDsl = TracerAlgebra.dsl[ProducerRecord[_, _], Any]
@@ -42,7 +42,7 @@ object ProducerTracing {
 
     def layer(
       tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any] = defaultKafkaProducerTracerAlgebra
-    ): ZLayer[Baggage with Tracing, Nothing, KafkaRecordTracer] =
+    ): ZLayer[Baggage with Tracing, Nothing, KafkaProducerTracer] =
       ZLayer.fromZIO {
         for {
           tracing <- ZIO.service[Tracing]
@@ -57,7 +57,7 @@ private class KafkaProducerTracingInterpreter(
   val tracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any],
   val tracing: Tracing,
   val baggage: Baggage
-) extends ClientBaseTracingInterpreter[ProducerRecord[_, _], Any, List[KafkaHeader], KafkaRecordTracer] { interpreter =>
+) extends ClientBaseTracingInterpreter[ProducerRecord[_, _], Any, List[KafkaHeader], KafkaProducerTracer] { interpreter =>
   override val spanKind: SpanKind = SpanKind.PRODUCER
   override protected def carrierToTransport(
     carrier: OutgoingContextCarrier[mutable.Map[String, String]]
@@ -66,8 +66,8 @@ private class KafkaProducerTracingInterpreter(
       new RecordHeader(k, v.getBytes("UTF-8"))
     }
 
-  override def interpretation: UIO[KafkaRecordTracer] = ZIO.succeed(
-    new KafkaRecordTracer {
+  override def interpretation: UIO[KafkaProducerTracer] = ZIO.succeed(
+    new KafkaProducerTracer {
       def enrichWithTransport[K, V](producerRecord: ProducerRecord[K, V], transport: List[KafkaHeader]): UIO[ProducerRecord[K, V]] = {
         val existingHeders = producerRecord.headers()
         val allHeaders = transport ++ existingHeders.toArray.toList

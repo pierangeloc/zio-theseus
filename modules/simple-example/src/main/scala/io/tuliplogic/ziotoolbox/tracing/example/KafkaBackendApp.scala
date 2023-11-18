@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.example
 
 import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer, TracingUtils}
 import io.tuliplogic.ziotoolbox.tracing.kafka.consumer.KafkaConsumerTracer
-import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaRecordTracer
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaProducerTracer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
 import zio._
@@ -75,8 +75,8 @@ object KafkaClient extends ZIOAppDefault {
       )
     )
 
-  def produce: ZIO[Producer with KafkaRecordTracer, Throwable, RecordMetadata] = {
-    KafkaRecordTracer.produceTracedRecord(new ProducerRecord[Long, String](
+  def produce: ZIO[Producer with KafkaProducerTracer, Throwable, RecordMetadata] = {
+    KafkaProducerTracer.produceTracedRecord(new ProducerRecord[Long, String](
       "ziotelemetry",
       0,
       0L,
@@ -100,6 +100,6 @@ object KafkaClient extends ZIOAppDefault {
 //      ContextStorage.fiberRef,
       Bootstrap.tracingLayer,
       OTELTracer.default("kafka-backend-app"),
-      KafkaRecordTracer.layer()
+      KafkaProducerTracer.layer()
     )
 }

@@ -5,6 +5,7 @@ import io.grpc.ManagedChannelBuilder
 import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, FlywayMigration, TransactorLayer}
 import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
 import io.tuliplogic.ziotoolbox.tracing.grpc.client.GrpcClientTracing
+import io.tuliplogic.ziotoolbox.tracing.kafka.producer.ProducerTracing.KafkaProducerTracer
 import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirServerTracer
 import scalapb.zio_grpc.ZManagedChannel
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
@@ -126,6 +127,7 @@ object ChargeSessionApp extends ZIOAppDefault {
           TransactorLayer.Debug.withLogging,
           KafkaPublisher.layer,
           kafkaProducerLayer,
+          KafkaProducerTracer.layer(),
           grpcClientLayer,
           Bootstrap.tracingLayer,
           OTELTracer.default("charging-service"),
