@@ -34,12 +34,9 @@ object ChargingHubApp extends ZIOAppDefault {
   }
 
   object ApiImpl {
-//    val layer = GrpcServerTracingInterpreter.serviceWithTracing[Any, ZioChargingHubApi.ChargingHubApi](_ =>
-//      new ApiImpl
-//    )
-
-    val layer: ZLayer[Any, Nothing, ZioChargingHubApi.GChargingHubApi[RequestContext, StatusException]] =
-      GrpcServerNoTracing.service((_: Any) => new ApiImpl)
+    val layer = GrpcServerTracingInterpreter.serviceWithTracing[Any, ZioChargingHubApi.ChargingHubApi](_ =>
+      new ApiImpl
+    )
   }
 
   private def serverLive(
@@ -53,8 +50,8 @@ object ChargingHubApp extends ZIOAppDefault {
     ZLayer.make[Server](
       serverLive(port),
       ChargingHubApp.ApiImpl.layer,
-//      Bootstrap.tracingLayer,
-//      OTELTracer.default("charging-hub"),
+      Bootstrap.tracingLayer,
+      OTELTracer.default("charging-hub"),
     )
 
 
