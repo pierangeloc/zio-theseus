@@ -4,12 +4,15 @@ import charginghub.charging_hub_api.ZioChargingHubApi
 import io.grpc.ManagedChannelBuilder
 import io.tuliplogic.ziotoolbox.doobie.{DbConnectionParams, FlywayMigration, TransactorLayer}
 import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
+import io.tuliplogic.ziotoolbox.tracing.grpc.client.GrpcClientTracing
 import io.tuliplogic.ziotoolbox.tracing.sttp.server.TapirServerTracer
 import scalapb.zio_grpc.ZManagedChannel
 import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.ztapir._
 import zio.http.{HttpApp, Server}
 import zio.kafka.producer.{Producer, ProducerSettings}
+import zio.telemetry.opentelemetry.baggage.Baggage
+import zio.telemetry.opentelemetry.tracing.Tracing
 import zio.{Cause, Scope, URLayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
 object ChargeSessionApp extends ZIOAppDefault {
@@ -99,17 +102,12 @@ object ChargeSessionApp extends ZIOAppDefault {
 
     }
 
-  val grpcClientLayer: ZLayer[ChargingHubClientConfig, Throwable, ZioChargingHubApi.ChargingHubApiClient] =
+  val grpcClientLayer: ZLayer[ChargingHubClientConfig with Tracing with Baggage, Throwable, ZioChargingHubApi.ChargingHubApiClient] =
     ZLayer.scoped {
       for {
         config <- ZIO.service[ChargingHubClientConfig]
-        channel = ZManagedChannel(
-                     builder = ManagedChannelBuilder
-                       .forAddress(config.host, config.port)
-                       .usePlaintext()
-                   )
-        api <- ZioChargingHubApi.ChargingHubApiClient.scoped(channel)
-      } yield api
+        client <- GrpcClientTracing.tracedClient(config.host, config.port)(ch => ZioChargingHubApi.ChargingHubApiClient.scoped(ch))
+      } yield client
     }
 
   override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
