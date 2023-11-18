@@ -46,13 +46,6 @@ class GrpcClientTracingInterpreter(
     )
   }
 
-//  override def enrichWithTracingTransport[Request](grpcReq: GrpcClientTracing.GrpcReq, metadataMap: Map[Metadata.Key[String], String])(implicit ev: Request <:< GrpcClientTracing.GrpcReq): UIO[GrpcClientTracing.GrpcReq] = {
-//    val safeMetadata = grpcReq._2
-//    ZIO.foldLeft(metadataMap)(safeMetadata)((m, kv) => m += (kv._1, kv._2)).map( smd =>
-//      (grpcReq._1, smd)
-//    )
-//  }
-
   override def interpretation: UIO[ZClientInterceptor] = ZIO.succeed(
     new ZClientInterceptor {
       override def interceptCall[Req, Res](
@@ -71,34 +64,8 @@ class GrpcClientTracingInterpreter(
               }
             )
 
-            //            delegate.start(responseListener, md)  &> ZIO.logInfo("******* GRPC start ********")
-            //            md.wrapZIO { m =>
-            //              spanOnRequest(enrichMetadata)(
-            //                spanName = methodDescriptor.getFullMethodName
-            //              ) ((methodDescriptor, m), {
-            //                case (_, metadata) =>
-            //                  delegate.start(responseListener, md)  &> ZIO.logInfo("******* GRPC start ********")
-            //                })
-            //              }
           }
         }
-      //
-      //              tracing.span(
-      //                spanName = methodDescriptor.getFullMethodName,
-      //                spanKind = SpanKind.CLIENT
-      //              )(for {
-      //                outgoingCarrier <- beforeSendingRequest(methodDescriptor)
-      //                _ <- ZIO.succeed {
-      //                       carrierToTransport(outgoingCarrier).foreach { case (k, v) =>
-      //                         m.put(k, v)
-      //                       }
-      //                     }
-      //                res <- delegate.start(responseListener, md) &> ZIO.logInfo("******* GRPC start ********")
-      //              } yield res)
-      //            }
-      //        }
-      //    }
-      //        }
     }
   )
 }

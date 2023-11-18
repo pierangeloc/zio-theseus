@@ -5,18 +5,22 @@ import io.tuliplogic.ziotoolbox.tracing.commons.{Bootstrap, OTELTracer}
 import charginghub.charging_hub_api.{StartSessionRequest, StartSessionResponse, StopSessionRequest, StopSessionResponse, ZioChargingHubApi}
 import io.tuliplogic.ziotoolbox.tracing.grpc.server.{GrpcServerNoTracing, GrpcServerTracingInterpreter}
 import scalapb.zio_grpc.{RequestContext, Server, ServerLayer, ServiceList}
-import zio.{IO, Scope, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
+import zio.telemetry.opentelemetry.tracing.Tracing
+import zio._
 
 object ChargingHubApp extends ZIOAppDefault {
   override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
     Bootstrap.defaultBootstrap
 
-  class ApiImpl extends ZioChargingHubApi.ChargingHubApi {
+  class ApiImpl(tracing: Tracing) extends ZioChargingHubApi.ChargingHubApi {
     override def startSession(request: StartSessionRequest): IO[StatusException, StartSessionResponse] = {
       ZIO.logAnnotate("sessionId", request.requestId) {
         ZIO.logInfo(s"Received start session request $request") *>
+          tracing.span("Call external Charging operator") {
+            ZIO.succeed(true).zip(zio.Random.nextUUID).delay(2.seconds)
+          }
 //          zio.Random.nextBoolean.zip(zio.Random.nextUUID).flatMap { case (success, uuid) =>
-          ZIO.succeed(true).zip(zio.Random.nextUUID).flatMap { case (success, uuid) =>
+          .flatMap { case (success, uuid) =>
             (if (success) ZIO.logInfo("Session start succeeded") else ZIO.logInfo("Session start failed")).as(StartSessionResponse(uuid.toString, success))
           }
       }
@@ -34,8 +38,8 @@ object ChargingHubApp extends ZIOAppDefault {
   }
 
   object ApiImpl {
-    val layer = GrpcServerTracingInterpreter.serviceWithTracing[Any, ZioChargingHubApi.ChargingHubApi](_ =>
-      new ApiImpl
+    val layer = GrpcServerTracingInterpreter.serviceWithTracing[Tracing, ZioChargingHubApi.ChargingHubApi](tracing =>
+      new ApiImpl(tracing)
     )
   }
 
@@ -55,6 +59,8 @@ object ChargingHubApp extends ZIOAppDefault {
     )
 
 
-  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
+  override def run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] = {
+    ZIO.logInfo("Launching grpc server on port 9001") *>
     makeLaunchableServer(9001).launch
+  }
 }

@@ -11,5 +11,5 @@ POST http://localhost:9000/session/start
 POST http://localhost:9000/session/stop
 
 {
-  "sessionId": "fd20ffb3-6fe4-4f66-abfa-718ce6839fa2"
+  "sessionId": "1a1f3f62-0336-4069-9d61-d1cd0df8ca12"
 }
