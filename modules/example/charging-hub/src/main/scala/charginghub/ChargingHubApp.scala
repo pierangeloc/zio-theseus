@@ -30,7 +30,7 @@ object ChargingHubApp extends ZIOAppDefault {
       ZIO.logAnnotate("stopSessionId", request.sessionId) {
         ZIO.logInfo(s"Received stop session request for session ${request.sessionId}") *>
 //          zio.Random.nextBoolean.flatMap { case success =>
-          ZIO.succeed(true).flatMap { case success =>
+          ZIO.succeed(true).delay(2.seconds).flatMap { case success =>
             (if (success) ZIO.logInfo("Session stop succeeded") else ZIO.logInfo("Session start failed")).as(StopSessionResponse(success))
           }
       }
