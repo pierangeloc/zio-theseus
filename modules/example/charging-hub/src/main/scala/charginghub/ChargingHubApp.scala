@@ -14,7 +14,7 @@ object ChargingHubApp extends ZIOAppDefault {
 
   class ApiImpl(tracing: Tracing) extends ZioChargingHubApi.ChargingHubApi {
     override def startSession(request: StartSessionRequest): IO[StatusException, StartSessionResponse] = {
-      ZIO.logAnnotate("sessionId", request.requestId) {
+      ZIO.logAnnotate("requestId", request.requestId) {
         ZIO.logInfo(s"Received start session request $request") *>
           tracing.span("Call external Charging operator") {
             ZIO.succeed(true).zip(zio.Random.nextUUID).delay(2.seconds)

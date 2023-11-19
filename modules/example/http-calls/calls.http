@@ -13,3 +13,5 @@ POST http://localhost:9000/session/stop
 {
   "sessionId": "1a1f3f62-0336-4069-9d61-d1cd0df8ca12"
 }
+
+### 950 x 390

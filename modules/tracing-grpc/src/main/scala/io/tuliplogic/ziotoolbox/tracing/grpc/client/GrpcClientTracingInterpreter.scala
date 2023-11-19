@@ -60,7 +60,7 @@ class GrpcClientTracingInterpreter(
                             ): IO[StatusException, Unit] = {
             spanOnRequest((req: GrpcReq) => req._1.getFullMethodName, enrichWithTracingTransport)((methodDescriptor, md), {
               case (_, safeMd) =>
-                delegate.start(responseListener, safeMd) &> ZIO.logInfo("******* GRPC start ********")
+                delegate.start(responseListener, safeMd)
               }
             )
 
