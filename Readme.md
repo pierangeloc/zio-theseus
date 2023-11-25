@@ -18,6 +18,7 @@ The collection of logs in Loki doesn't fully work yet, but the traces in Tempo a
 
 ### Real World Example
 A more real world example is available in `modules/example` directory, where you will find 3 services that can be run independently.  the `http-calls/calls.http` file contains the calls to start and stop sessions targeting the charging service.
+
 For my experiments I'm using Datadog which provides seamless integration between logs and traces, but there is work in progress to have this setup working with Grafana/Loki.
 
 
