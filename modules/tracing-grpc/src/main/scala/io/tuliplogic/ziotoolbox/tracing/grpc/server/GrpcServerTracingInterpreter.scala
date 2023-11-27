@@ -23,12 +23,16 @@ class GrpcServerTracingInterpreter(
   override def transportToCarrier(metadata: Metadata): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(
       new IncomingContextCarrier[Map[String, String]] {
-        override val kernel: Map[String, String] =
-          metadata
+        override val kernel: Map[String, String] = {
+
+          val res = metadata
             .keys()
             .asScala
             .map(k => k -> metadata.get(Metadata.Key.of(k, Metadata.ASCII_STRING_MARSHALLER)))
             .toMap
+
+          res
+        }
 
         override def getAllKeys(carrier: Map[String, String]): Iterable[String] =
           kernel.keys
@@ -103,7 +107,7 @@ object GrpcServerTracingInterpreter {
   val tracerDsl = TracerAlgebra.dsl[RequestContext, Any]
   val defaultGrpcServerTracerAlgebra: TracerAlgebra[RequestContext, Any] = {
     import tracerDsl._
-    withRequestAttributes(reqCtx =>
+    requestAttributes(reqCtx =>
       Map(
         SemanticAttributes.RPC_SYSTEM.getKey  -> "grpc-backend-app", //TODO make dynamic
         SemanticAttributes.RPC_METHOD.getKey  -> reqCtx.methodDescriptor.getBareMethodName,

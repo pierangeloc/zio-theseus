@@ -78,7 +78,7 @@ object GrpcClientTracing {
   val defaultGrpcClientTracerAlgebra: TracerAlgebra[GrpcReq, Any] = {
     import tracerDsl._
     spanName(_._1.getFullMethodName) &
-      withRequestAttributes(req =>
+      requestAttributes(req =>
         Map(
           SemanticAttributes.RPC_METHOD.getKey  -> req._1.getBareMethodName,
           SemanticAttributes.RPC_SERVICE.getKey -> req._1.getServiceName,

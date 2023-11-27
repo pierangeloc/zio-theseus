@@ -77,7 +77,7 @@ object TapirServerTracer {
   val defaultTapirServerTracerAlgebra: TracerAlgebra[ServerRequest, Any] = {
     import tracerDsl._
     spanName(serverRequest => serverRequest.showShort) &
-    withRequestAttributes(req =>
+    requestAttributes(req =>
       Map(
         SemanticAttributes.HTTP_REQUEST_METHOD.getKey -> req.method.method,
         SemanticAttributes.URL_FULL.getKey -> req.uri.toString(),

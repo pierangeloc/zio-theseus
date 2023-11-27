@@ -14,9 +14,10 @@ import zio.http.{HttpApp, Server}
 import zio.kafka.producer.{Producer, ProducerSettings}
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.tracing.Tracing
-import zio.{Cause, Scope, URLayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
+import zio.{Cause, LogAnnotation, Scope, URLayer, ZIO, ZIOAppArgs, ZIOAppDefault, ZLayer}
 
-object ChargeSessionApp extends ZIOAppDefault {
+object ChargeServiceApp extends ZIOAppDefault {
+
   override val bootstrap: ZLayer[ZIOAppArgs, Any, Environment] =
     Bootstrap.defaultBootstrap
 
@@ -62,34 +63,49 @@ object ChargeSessionApp extends ZIOAppDefault {
       } yield p
     )
 
-  val zioHttpApp: ZIO[TapirServerTracer, Nothing, HttpApp[Any with ChargeSessionHandler, Throwable]] =
+  val zioHttpApp: ZIO[TapirServerTracer with Tracing with Baggage, Nothing, HttpApp[Any with ChargeSessionHandler, Throwable]] =
     for {
-      tapirTracingInterpretation <- ZIO.service[TapirServerTracer]
+      tapirServerTracer <- ZIO.service[TapirServerTracer]
     } yield {
-      import tapirTracingInterpretation._
+      import tapirServerTracer._
+
+      //some log annotations for test. In reality they will be dynamic values
+      val logAnnotations = Set(
+        LogAnnotation("user-id", "test-user-id"),
+        LogAnnotation("frontend-correlation-id", "correlation-id-123")
+      )
+
+
       ZioHttpInterpreter().toHttp(
         List(
           ChargeSessionApi.startSessionEndpoint.zServerLogicTracing("start-session") { chargingRequest =>
-            for {
-              csh <- ZIO.service[ChargeSessionHandler]
-              resp <-
-                csh
-                  .startSession(chargingRequest)
-                  .flatMapError(t =>
-                    ZIO.logErrorCause("Error handling start charging request", Cause.die(t)).as(s"error ${t.getMessage}")
-                  )
-            } yield resp
+            ZIO.logAnnotate(logAnnotations)(
+              for {
+                _ <- ZIO.logInfo("Handling start charging request")
+                csh <- ZIO.service[ChargeSessionHandler]
+                resp <-
+                  csh
+                    .startSession(chargingRequest)
+                    .flatMapError(t =>
+                      ZIO.logErrorCause("Error handling start charging request", Cause.die(t)).as(s"error ${t.getMessage}")
+                    )
+              } yield resp
+            )
           },
+
           ChargeSessionApi.stopSessionEndpoint.zServerLogicTracing("stop-session") { stopChargeSessionRequest =>
-            for {
-              csh <- ZIO.service[ChargeSessionHandler]
-              resp <-
-                csh
-                  .stopSession(stopChargeSessionRequest)
-                  .flatMapError(t =>
-                    ZIO.logErrorCause("Error handling stop charging request", Cause.die(t)).as(s"error ${t.getMessage}")
-                  )
-            } yield resp
+            ZIO.logAnnotate(logAnnotations)(
+              for {
+                csh <- ZIO.service[ChargeSessionHandler]
+                _ <- ZIO.logInfo("Handling stop charging request")
+                resp <-
+                  csh
+                    .stopSession(stopChargeSessionRequest)
+                    .flatMapError(t =>
+                      ZIO.logErrorCause("Error handling stop charging request", Cause.die(t)).as(s"error ${t.getMessage}")
+                    )
+              } yield resp
+            )
           }
         )
       )

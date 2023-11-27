@@ -71,7 +71,7 @@ object SttpClientTracingInterpreter {
     def showShort(req: Request[_, _]) = s"${req.method} ${req.uri.copy(scheme = None, authority = None, fragmentSegment = None).toString}"
 
     spanName(req => s"HTTP ${showShort(req)}") &
-      withRequestAttributes(req =>
+      requestAttributes(req =>
         Map(
           SemanticAttributes.HTTP_REQUEST_METHOD.getKey -> req.method.method,
           SemanticAttributes.URL_FULL.getKey -> req.uri.toString(),
@@ -82,7 +82,7 @@ object SttpClientTracingInterpreter {
           ResourceAttributes.OTEL_SCOPE_NAME.getKey -> "zio-sttp-client",
           "some.custom.attribute" -> "some.custom.value"
         )
-      ) & withResponseAttributes(res =>
+      ) & responseAttributes(res =>
       Map(
         SemanticAttributes.HTTP_RESPONSE_STATUS_CODE.getKey -> res.code.code.toString
       )

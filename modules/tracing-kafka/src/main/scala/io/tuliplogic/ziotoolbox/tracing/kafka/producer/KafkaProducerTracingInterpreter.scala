@@ -31,7 +31,7 @@ object ProducerTracing {
     val defaultKafkaProducerTracerAlgebra: TracerAlgebra[ProducerRecord[_, _], Any] = {
       import tracerDsl._
       spanName(r => s"kafka.producer - ${r.topic}") &
-      withRequestAttributes(req =>
+      requestAttributes(req =>
         Map(
           "kafka.topic"                                                   -> req.topic(),
           SemanticAttributes.MESSAGING_DESTINATION_NAME.getKey            -> req.topic(),

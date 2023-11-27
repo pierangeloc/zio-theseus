@@ -23,7 +23,7 @@ object KafkaConsumerTracer {
     val tracerDsl = TracerAlgebra.dsl[ConsumerRecord[_, _], Any]
 
     import tracerDsl._
-    withRequestAttributes(req =>
+    requestAttributes(req =>
       Map(
         SemanticAttributes.MESSAGING_SOURCE_NAME.getKey            -> req.topic(),
         "kafka.topic"                                              -> req.topic(),
