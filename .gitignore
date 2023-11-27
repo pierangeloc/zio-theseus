@@ -11,3 +11,4 @@
 .vscode/
 metals.sbt
 target/
+modules/simple-example/tempo-data
