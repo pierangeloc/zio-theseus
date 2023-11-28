@@ -63,6 +63,11 @@ private class ConsumerTracingInterpreter(
   interpreter =>
 
   override val spanKind: SpanKind = SpanKind.CONSUMER
+  override val title: String      = "Kafka Consumer"
+  override val description: String =
+    "Traces the processing of a Kafka consumer record"
+  override val exampleRequest: ConsumerRecord[_, _] = new ConsumerRecord("topic", 0, 0, "key", "value")
+  override val exampleResponse: Any                 = ()
 
   override def transportToCarrier(headers: List[KafkaHeader]): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(

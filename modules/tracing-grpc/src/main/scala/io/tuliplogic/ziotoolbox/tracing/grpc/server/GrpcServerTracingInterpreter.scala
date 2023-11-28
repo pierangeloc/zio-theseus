@@ -1,11 +1,11 @@
 package io.tuliplogic.ziotoolbox.tracing.grpc.server
 
-import io.grpc.{Metadata, Status, StatusException}
+import io.grpc.{Attributes, Metadata, MethodDescriptor, Status, StatusException}
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.semconv.{ResourceAttributes, SemanticAttributes}
 import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
-import scalapb.zio_grpc.{GeneratedService, RequestContext, ZTransform}
-import zio.{Tag, UIO, ZIO, ZLayer}
+import scalapb.zio_grpc.{GeneratedService, RequestContext, SafeMetadata, ZTransform}
+import zio.{Runtime, Tag, UIO, Unsafe, ZIO, ZLayer}
 import zio.stream.ZStream
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.baggage.propagation.BaggagePropagator
@@ -20,6 +20,24 @@ class GrpcServerTracingInterpreter(
   val baggage: Baggage
 ) extends ServerTracerBaseInterpreter[RequestContext, Any, Metadata, ZTransform[Any, RequestContext]] {
   override val spanKind: SpanKind = SpanKind.SERVER
+  override val title: String = "Grpc Server"
+
+  override val description: String = "Traces a Grpc Server"
+  override val exampleRequest: RequestContext =
+    Unsafe.unsafe { implicit unsafe =>
+        Runtime.default.unsafe.run(
+          for {
+            reqMd <- SafeMetadata.make()
+            resMd <- SafeMetadata.make()
+            methodDescriptor = MethodDescriptor.newBuilder[Any, Any]()
+              .setFullMethodName("my.package.app.Service/Method")
+              .setType(MethodDescriptor.MethodType.UNARY)
+              .build()
+          } yield RequestContext(reqMd, resMd, None, methodDescriptor, Attributes.EMPTY)
+        ).getOrThrowFiberFailure()
+    }
+  override val exampleResponse: Any = ()
+
   override def transportToCarrier(metadata: Metadata): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(
       new IncomingContextCarrier[Map[String, String]] {
@@ -99,6 +117,7 @@ class GrpcServerTracingInterpreter(
       }
     }
   )
+
 
 }
 

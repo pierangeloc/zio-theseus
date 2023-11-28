@@ -2,6 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.commons
 
 import io.opentelemetry.api.baggage.BaggageEntryMetadata
 import io.opentelemetry.api.trace.SpanKind
+import io.tuliplogic.ziotoolbox.tracing.commons.Documentation.Attribute
 import zio.telemetry.opentelemetry.baggage.Baggage
 import zio.telemetry.opentelemetry.baggage.propagation.BaggagePropagator
 import zio.telemetry.opentelemetry.context.IncomingContextCarrier
@@ -11,6 +12,10 @@ import zio.{LogAnnotation, Trace, UIO, ZIO}
 
 trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
   val spanKind: SpanKind
+  val title: String
+  val description: String
+  val exampleRequest: Req
+  val exampleResponse: Res
   def tracing: Tracing
   def baggage: Baggage
   def tracerAlgebra: TracerAlgebra[Req, Res]
@@ -49,6 +54,17 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
 
   def transportToCarrier(t: Transport): UIO[IncomingContextCarrier[Map[String, String]]]
   def interpretation: UIO[Interpretation]
+
+  def documentation: UIO[Documentation] = for {
+    reqAttributes <- ZIO.succeed(tracerAlgebra.requestAttributes(exampleRequest))
+    resAttributes <- ZIO.succeed(tracerAlgebra.responseAttributes(exampleResponse))
+  } yield Documentation(
+    title = title,
+    description = description,
+    attributesFromRequest = reqAttributes.toList.map { case (k, v) => Attribute(k, v) },
+    attributesFromResponse = resAttributes.toList.map { case (k, v) => Attribute(k, v) }
+  )
+
 
 }
 
