@@ -3,10 +3,10 @@ import Dependencies.*
 ThisBuild / organization := "io.tuliplogic.toolbox"
 ThisBuild / scalaVersion := "2.13.12"
 
-lazy val `zio-toolbox` =
+lazy val `zio-theseus` =
   project
     .in(file("."))
-    .settings(name := "zio-toolbox")
+    .settings(name := "zio-theseus")
     .settings(commonSettings)
     .settings(autoImportSettings)
     .settings(dependencies)

@@ -1,8 +1,11 @@
-# ZIO-Toolbox
-### A collection of useful tools to work with ZIO application
+# ZIO-Theseus
+### A collection of manual code instrumentation libraries to instrument ZIO application for OpenTelemetry
 
-This projects is a collection of useful tools to work with ZIO application. It is a work in progress so it is not published, not even in RC version.
-It focuses on Doobie utils and on Tracing utilities based on [ZIO-OpenTelemetry](https://github.com/zio/zio-telemetry/tree/series/2.x/opentelemetry/src).
+This projects is a work in progress so it is not published, not even in RC version.
+
+It focuses on Tracing utilities based on [ZIO-OpenTelemetry](https://github.com/zio/zio-telemetry/tree/series/2.x/opentelemetry/src).
+
+It also contains a library containing some utilities to work with Doobie and Flyway.
 
 ### Modules:
 - `doobie`: Provides a standard layer to get a `Transactor` and `Flyway` migrations.

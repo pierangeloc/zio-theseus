@@ -1,7 +1,7 @@
 <configuration>
   <property name="FILE_LOG_PATTERN" value="${FILE_LOG_PATTERN:-${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- ${LOGGED_APPLICATION_NAME:-}[%t] ${LOG_CORRELATION_PATTERN:-}%-40.40logger{39} : %m%n}"/>
   <property name="appName" value="charging-hub"/>
-  <property name="LOG_DIR" value="/Users/pierangelo.cecchetto/Documents/projects/oss/zio-toolbox/modules/example/charging-hub" />
+  <property name="LOG_DIR" value="/Users/pierangelo.cecchetto/Documents/projects/oss/zio-theseus/modules/example/charging-hub" />
 
   <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
 <!--    <encoder>-->
@@ -21,7 +21,7 @@
 
 
 <!--  <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-<!--    <file>/Users/pierangelo.cecchetto/Documents/projects/oss/zio-toolbox/modules/simple-example/logs/file_name.log</file>-->
+<!--    <file>/Users/pierangelo.cecchetto/Documents/projects/oss/zio-theseus/modules/simple-example/logs/file_name.log</file>-->
 <!--    <encoder class="net.logstash.logback.encoder.LogstashEncoder" />-->
 <!--    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
 <!--      <fileNamePattern>/log/file_name.%d{yyyy-MM-dd}.log.gz</fileNamePattern>-->
