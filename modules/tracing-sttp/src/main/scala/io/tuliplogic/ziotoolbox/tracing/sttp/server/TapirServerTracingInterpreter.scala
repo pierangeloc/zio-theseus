@@ -140,6 +140,7 @@ class TapirServerTracingInterpreter(
   }
   override val exampleResponse: Any = ()
 
+
   override def transportToCarrier(headers: List[Header]): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(
       new IncomingContextCarrier[Map[String, String]] {
