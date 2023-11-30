@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.sttp.server
 
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.semconv.{ResourceAttributes, SemanticAttributes}
-import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
+import io.tuliplogic.ziotoolbox.tracing.commons.{ServerBaseTracingInterpreter, TracerAlgebra}
 import sttp.client3.UriContext
 import sttp.model.{Header, Method, QueryParams, Uri}
 import sttp.tapir.{AttributeKey, Endpoint}
@@ -110,36 +110,9 @@ class TapirServerTracingInterpreter(
   val tracerAlgebra: TracerAlgebra[ServerRequest, Any],
   val tracing: Tracing,
   val baggage: Baggage
-) extends ServerTracerBaseInterpreter[ServerRequest, Any, List[Header], TapirServerTracer] {
+) extends ServerBaseTracingInterpreter[ServerRequest, Any, List[Header], TapirServerTracer] {
 
   override val spanKind: SpanKind = SpanKind.SERVER
-  override val title: String = "Tapir Server"
-  override val description: String = "Traces the processing of a Tapir server endpoint"
-  override val exampleRequest: ServerRequest = new  ServerRequest {
-    override def protocol: String = "https"
-
-    override def connectionInfo: ConnectionInfo = ConnectionInfo(None, None, None)
-
-    override def underlying: Any = ()
-
-    override def pathSegments: List[String] = "api" :: "v1" :: Nil
-
-    override def queryParameters: QueryParams = QueryParams.fromSeq(List(("param1", "value1"), ("param2", "value2")))
-
-    override def attribute[T](k: AttributeKey[T]): Option[T] = None
-
-    override def attribute[T](k: AttributeKey[T], v: T): ServerRequest = this
-
-    override def withUnderlying(underlying: Any): ServerRequest = this
-
-    override def method: Method = Method.GET
-
-    override def uri: Uri = uri"https://example.com/api/v1?param1=value1&param2=value2"
-
-    override def headers: Seq[Header] = Nil
-  }
-  override val exampleResponse: Any = ()
-
 
   override def transportToCarrier(headers: List[Header]): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(

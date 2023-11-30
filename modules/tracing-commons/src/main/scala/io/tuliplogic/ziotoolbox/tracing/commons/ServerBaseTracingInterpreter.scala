@@ -10,12 +10,8 @@ import zio.telemetry.opentelemetry.tracing.propagation.TraceContextPropagator
 import zio.telemetry.opentelemetry.tracing.{StatusMapper, Tracing}
 import zio.{LogAnnotation, Trace, UIO, ZIO}
 
-trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
+trait ServerBaseTracingInterpreter[Req, Res, Transport, Interpretation] {
   val spanKind: SpanKind
-  val title: String
-  val description: String
-  val exampleRequest: Req
-  val exampleResponse: Res
   def tracing: Tracing
   def baggage: Baggage
   def tracerAlgebra: TracerAlgebra[Req, Res]
@@ -54,17 +50,6 @@ trait ServerTracerBaseInterpreter[Req, Res, Transport, Interpretation] {
 
   def transportToCarrier(t: Transport): UIO[IncomingContextCarrier[Map[String, String]]]
   def interpretation: UIO[Interpretation]
-
-  def documentation: UIO[Documentation] = for {
-    reqAttributes <- ZIO.succeed(tracerAlgebra.requestAttributes(exampleRequest))
-    resAttributes <- ZIO.succeed(tracerAlgebra.responseAttributes(exampleResponse))
-  } yield Documentation(
-    title = title,
-    description = description,
-    attributesFromRequest = reqAttributes.toList.map { case (k, v) => Attribute(k, v) },
-    attributesFromResponse = resAttributes.toList.map { case (k, v) => Attribute(k, v) }
-  )
-
 
 }
 

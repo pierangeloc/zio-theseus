@@ -2,7 +2,7 @@ package io.tuliplogic.ziotoolbox.tracing.kafka.consumer
 
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.semconv.trace.attributes.SemanticAttributes
-import io.tuliplogic.ziotoolbox.tracing.commons.{ServerTracerBaseInterpreter, TracerAlgebra}
+import io.tuliplogic.ziotoolbox.tracing.commons.{ServerBaseTracingInterpreter, TracerAlgebra}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.{Header => KafkaHeader}
 import zio.telemetry.opentelemetry.baggage.Baggage
@@ -59,15 +59,10 @@ private class ConsumerTracingInterpreter(
   val tracerAlgebra: TracerAlgebra[ConsumerRecord[_, _], Any],
   val tracing: Tracing,
   val baggage: Baggage
-) extends ServerTracerBaseInterpreter[ConsumerRecord[_, _], Any, List[KafkaHeader], KafkaConsumerTracer] {
+) extends ServerBaseTracingInterpreter[ConsumerRecord[_, _], Any, List[KafkaHeader], KafkaConsumerTracer] {
   interpreter =>
 
   override val spanKind: SpanKind = SpanKind.CONSUMER
-  override val title: String      = "Kafka Consumer"
-  override val description: String =
-    "Traces the processing of a Kafka consumer record"
-  override val exampleRequest: ConsumerRecord[_, _] = new ConsumerRecord("topic", 0, 0, "key", "value")
-  override val exampleResponse: Any                 = ()
 
   override def transportToCarrier(headers: List[KafkaHeader]): UIO[IncomingContextCarrier[Map[String, String]]] =
     ZIO.succeed(

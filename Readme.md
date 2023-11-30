@@ -8,7 +8,7 @@ It focuses on Tracing utilities based on [ZIO-OpenTelemetry](https://github.com/
 It also contains a library containing some utilities to work with Doobie and Flyway.
 
 ### Modules:
-- `doobie`: Provides a standard layer to get a `Transactor` and `Flyway` migrations.
+- `doobie`: Provides a standard layer to get a `Transactor` and `Flyway` migrations. (This is not about tracing, it will be eventually moved out of this library)
 - `tracing-commons`: Shared utilities to initialize the application so that Tracing and Logging are available
 - `tracing-doobie`: instrumentation around the execution of doobie fragments
 - `tracing-sttp`: instrumentation around the execution of http requests on the client side (using sttp) or on the server side (using http4s)
