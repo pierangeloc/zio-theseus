@@ -1,11 +1,11 @@
 # ZIO-Theseus
-### A collection of manual code instrumentation libraries to instrument ZIO application for OpenTelemetry
+### A collection of libraries to instrument ZIO-based service boundaries using ZIO-OpenTelemetry
 
-This projects is a work in progress so it is not published, not even in RC version.
+N.B.: This projects is a work in progress and at a very early stage, so it is not published.
 
 It focuses on Tracing utilities based on [ZIO-OpenTelemetry](https://github.com/zio/zio-telemetry/tree/series/2.x/opentelemetry/src).
 
-It also contains a library containing some utilities to work with Doobie and Flyway.
+It also contains a library with some utilities to work with Doobie and Flyway, that will eventually migrate to a different project.
 
 ### Modules:
 - `doobie`: Provides a standard layer to get a `Transactor` and `Flyway` migrations. (This is not about tracing, it will be eventually moved out of this library)
